@@ -1,16 +1,21 @@
 Package: compeco
-Title: Access Elevation Data from Various APIs
+Title: ACESD computational ecology HABlab package
 Version: 0.0.1.9999
 Authors@R: c(person("Jeffrey", "Hollister", email = "hollister.jeff@epa.gov", 
-                  role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9254-9740")),
-             person("Stephen", "Shivers", role = "auth", comment = c(ORCID = "")))
+                  role = c("aut", "cre"), 
+                  comment = c(ORCID = "0000-0002-9254-9740")),
+             person("Stephen", "Shivers", role = "aut", 
+                  comment = c(ORCID = "")))
 URL: https://github.com/jhollist/compeco/
 BugReports: https://github.com/jhollist/compeco/issues/
 Maintainer: Jeffrey Hollister <hollister.jeff@epa.gov>
-Description: 
+Description: Collection of R packages used by the ACESD computational ecology 
+             HABlab (ACESDCEHL) for various computational tasks that are not 
+             project sepcific.
 Depends: R (>= 3.6.2)
 Imports:
-    dplyr
+    dplyr,
+    readr
 License: CC0
 Encoding: UTF-8
 LazyData: true
