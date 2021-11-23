@@ -9,3 +9,9 @@ output: github_document
 - `ce_convert_rfus()`: Converts input RFUs to concentration
 - `ce_create_std_curve()`: Creates a standard curve from input fluorometer and spectrophotometer files
 - `ce_prep_rfu_file()`: Prepares input files to get converted into concentration.  Might end up being an internal function
+
+# To Do
+- On 2021-11-30: work on create std curve from lambda and fluorometer files.
+  - rename files
+  - read in excel spec - each tab is a concentration need to pull two values.  skip top 4
+  
