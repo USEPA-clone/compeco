@@ -24,7 +24,8 @@
 #' @importFrom readr read_csv write_csv
 #' @export
 #' @examples
-#' ce_convert_rfus()
+#' examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
+#' ce_convert_rfus(rfu_in = examp_data)
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             fluorometer = c("compeco", "acesd"),
@@ -33,7 +34,8 @@ ce_convert_rfus <- function(rfu_in,
   module <- match.arg(module)
   fluorometer <- match.arg(fluorometer)
   date <- match.arg(date)
-  rfus <- read_csv(rfu_in)
+  rfus <- suppressMessages(read_csv(rfu_in))
+  browser()
   
   
   
