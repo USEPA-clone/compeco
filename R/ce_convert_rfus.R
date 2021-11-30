@@ -9,17 +9,17 @@
 #'                for an example of the expected file format.
 #' @param module One of two options: "ext_chla", "invivo_chla", or "phyco", 
 #'                default is "ext_chla".
-#' @param fluorometer One of two options: "compeco" or "acesd", default is 
-#'                     "compeco". These represent the two Turner Triology's at
-#'                     ACESD.  The "compeco" one was purchased by our lab, the
-#'                     "acesd", has been in use for sometime and currently 
-#'                     resides in M07. The default is "compeco".
+#' @param fluorometer One of two options: "ours" or "theirs", default is 
+#'                     "ours". These represent the two Turner Triology's at
+#'                     ACESD.  The "ours" one was purchased by the compeco lab, 
+#'                     the "theirs", has been in use for sometime and currently 
+#'                     resides in M07. The default is "ours".
 #' @param date Date of the standard curve.  Acceptable values are:  "NEED THESE"
 #' @param output An options output path and csv file name for converted values.
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluormeters, don't 
-#'        do this.  Keep the "compeco" modules with the "compeco" fluorometer 
+#'        do this.  Keep the "ours" modules with the "ours" fluorometer 
 #'        and vice-versa. 
 #' @importFrom readr read_csv write_csv
 #' @export
@@ -28,7 +28,7 @@
 #' ce_convert_rfus(rfu_in = examp_data)
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
-                            fluorometer = c("compeco", "acesd"),
+                            fluorometer = c("ours", "theirs"),
                             date = c("2021-11-16"),
                             output = NULL){
   module <- match.arg(module)

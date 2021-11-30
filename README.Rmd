@@ -12,6 +12,7 @@ output: github_document
 
 # To Do
 - On 2021-11-30: work on create std curve from lambda and fluorometer files.
-  - rename files
   - read in excel spec - each tab is a concentration need to pull two values.  skip top 4
-  
+- rename input raw data files: instead of multiple dates in file name, use last date for run
+  - no: chla_2021_8_11_&_31_&_9_15_&_10_13_&_11_4.csv
+  - yes: chla_2021_11_4.csv
