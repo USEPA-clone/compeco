@@ -3,3 +3,4 @@
 export(ce_convert_rfus)
 importFrom(readr,read_csv)
 importFrom(readr,write_csv)
+importFrom(readxl,read_excel)

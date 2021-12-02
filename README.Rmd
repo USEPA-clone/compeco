@@ -7,12 +7,17 @@ output: github_document
 # Exported functions in the `compeco` package as of `r lubridate::today()`
 
 - `ce_convert_rfus()`: Converts input RFUs to concentration
-- `ce_create_std_curve()`: Creates a standard curve from input fluorometer and spectrophotometer files
 - `ce_prep_rfu_file()`: Prepares input files to get converted into concentration.  Might end up being an internal function
+- `ce_process_buoy_data()`: Function to fetch buoy data from newftp.epa.gov and merge into an rda
+- `ce_process_exo_data()`: Prepares and combines data files from handheld YSI exo2
 
 # To Do
-- On 2021-11-30: work on create std curve from lambda and fluorometer files.
-  - read in excel spec - each tab is a concentration need to pull two values.  skip top 4
+- On 2021-12-07: Keep working on standard curve function
+  - have fluoro and spec files read in for phyco or ext_chla
+  - Need to pull out values we need from each to build the regression
+  - Other things: Add warning when solid standard from sample run is > 5% from curve and then error when difference is gt 10%
+
+
 - rename input raw data files: instead of multiple dates in file name, use last date for run
   - no: chla_2021_8_11_&_31_&_9_15_&_10_13_&_11_4.csv
   - yes: chla_2021_11_4.csv

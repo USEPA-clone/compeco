@@ -29,9 +29,11 @@
 #' ce_convert_rfus(rfu_in = examp_data)
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
-                            year = c("2021"),
+                            year = years,
                             fluorometer = c("ours", "theirs"),
                             output = NULL){
+  # Use Code to Get years
+  browser() 
   module <- match.arg(module)
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
@@ -53,8 +55,27 @@ ce_convert_rfus <- function(rfu_in,
 #' 
 #' @param ... Arguments for module, fluorometer and date of input standard curve
 #'            csv files.  Passed from \code{\link{ce_convert_rfus}}
+#' @importFrom readr read_csv
+#' @importFrom readxl read_excel
 #' @keywords internal
 ce_create_std_curve <- function(...){
+  args <- list(...)
+  module <- args[[1]]
+  year <- args[[2]]
+  fluorom <- args[[3]]
+  ffile <- paste0(system.file("extdata", package = "compeco"), "/", 
+                  module, "_",  year, "_", fluorom, "_fluorometer.csv")
+  sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
+                   module, "_",  year, "_", fluorom, "_spec.xlsx")
+  fluoro <- suppressMessages(read_csv(ffile))
+  if(module == "ext_chla"){
+    sheets <- readxl::excel_sheets(sfile)
+    specs <- map(sheets, function(x) read_excel(sfile, sheet = x, skip = 4))
+  } else if(module == "phyco"){
+    spec <- read_xlsx(sfile, sheet = 1, skip = 4)
+  } else if(module == "invivo_chla"){
+    #Who knows???
+  }
   browser()
   
 }

@@ -1,0 +1,26 @@
+---
+title: "notes"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{notes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(compeco)
+```
+
+# Notes for future/SOP/QAPP
+
+- For phyco spec file, make sure final only has single tab (i.e. the tab that has the values needed for the standard curve).  Save to compeco/inst/extdata with following stucture, "module_year_fluorometer_spec.xlsx"  Module, year, and fluorometer come from `ce_convert_rfus()` arguments.
+
+- For
+

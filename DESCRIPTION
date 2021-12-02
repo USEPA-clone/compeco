@@ -15,15 +15,23 @@ Description: Collection of R packages used by the ACESD computational ecology
 Depends: R (>= 3.6.2)
 Imports:
     dplyr,
-    readr
+    readr,
+    curl,
+    stringr,
+    lubridate,
+    dplyr,
+    readr,
+    tidyr,
+    purrr
 License: CC0
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.2
 Suggests: 
-    testthat,
+    testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     formatR,
     progress
 VignetteBuilder: knitr
+Config/testthat/edition: 3

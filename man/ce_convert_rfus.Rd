@@ -7,8 +7,8 @@
 ce_convert_rfus(
   rfu_in,
   module = c("ext_chla", "invivo_chla", "phyco"),
-  fluorometer = c("compeco", "acesd"),
-  date = c("2021-11-16"),
+  year = years,
+  fluorometer = c("ours", "theirs"),
   output = NULL
 )
 }
@@ -19,13 +19,14 @@ for an example of the expected file format.}
 \item{module}{One of two options: "ext_chla", "invivo_chla", or "phyco", 
 default is "ext_chla".}
 
-\item{fluorometer}{One of two options: "compeco" or "acesd", default is 
-"compeco". These represent the two Turner Triology's at
-ACESD.  The "compeco" one was purchased by our lab, the
-"acesd", has been in use for sometime and currently 
-resides in M07. The default is "compeco".}
+\item{year}{Year of the standard curve.  If more than one curve caluclated in
+a year add "a", "b", ...  Acceptable values are:  "2021"}
 
-\item{date}{Date of the standard curve.  Acceptable values are:  "NEED THESE"}
+\item{fluorometer}{One of two options: "ours" or "theirs", default is 
+"ours". These represent the two Turner Triology's at
+ACESD.  The "ours" one was purchased by the compeco lab, 
+the "theirs", has been in use for sometime and currently 
+resides in M07. The default is "ours".}
 
 \item{output}{An options output path and csv file name for converted values.}
 }
@@ -40,10 +41,11 @@ internally in this package and may be updated.  The module, fluorometer, and
 date arguments will specify which curve data file to use.
 }
 \note{
-While it is possible to mix and match modules and fluormeters, don't 
-       do this.  Keep the "compeco" modules with the "compeco" fluorometer 
+While it is possible to mix and match modules and fluorometers, don't 
+       do this.  Keep the "ours" modules with the "ours" fluorometer 
        and vice-versa.
 }
 \examples{
-ce_convert_rfus()
+examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
+ce_convert_rfus(rfu_in = examp_data)
 }
