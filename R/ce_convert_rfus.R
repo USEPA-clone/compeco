@@ -32,18 +32,14 @@ ce_convert_rfus <- function(rfu_in,
                             year = years,
                             fluorometer = c("ours", "theirs"),
                             output = NULL){
-  # Use Code to Get years
-  browser() 
+  
   module <- match.arg(module)
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
   std_curve <- ce_create_std_curve(module, year, fluorometer)
-  
   rfus <- suppressMessages(read_csv(rfu_in))
-  browser()
   
-  
-  
+
   if(!is.null(output)) write_csv(out, output)
   conc
 }
@@ -56,7 +52,8 @@ ce_convert_rfus <- function(rfu_in,
 #' @param ... Arguments for module, fluorometer and date of input standard curve
 #'            csv files.  Passed from \code{\link{ce_convert_rfus}}
 #' @importFrom readr read_csv
-#' @importFrom readxl read_excel
+#' @importFrom readxl read_excel excel_sheets
+#' @importFrom purrr map
 #' @keywords internal
 ce_create_std_curve <- function(...){
   args <- list(...)
@@ -68,14 +65,43 @@ ce_create_std_curve <- function(...){
   sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
                    module, "_",  year, "_", fluorom, "_spec.xlsx")
   fluoro <- suppressMessages(read_csv(ffile))
+  fluoro <- dplyr::group_by(fluoro, standard)
+  fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
+  fluoro <- dplyr::ungroup(fluoro)
+  blank <- fluoro2[fluoro$standard == "blank",]$avg_value
+  fluoro <- dplyr::mutate(fluoro, blanked_value = dplyr::case_when(standard != "solid" ~ 
+                                                         avg_value - blank,
+                                                       TRUE ~ avg_value))
   if(module == "ext_chla"){
-    sheets <- readxl::excel_sheets(sfile)
-    specs <- map(sheets, function(x) read_excel(sfile, sheet = x, skip = 4))
+    sheets <- excel_sheets(sfile)
+    specs <- map(sheets, function(x) {
+      spec <- read_excel(sfile, sheet = x, skip = 4)
+      spec <- dplyr::mutate(spec, samp_conc = x)})
+    specs <- do.call(rbind, specs)
+    specs <- dplyr::filter(specs, nm == 750 | nm == 664)
+    
+    # Blank correction
+    blank750 <- specs[specs$samp_conc == "Blank.Sample" & specs$nm == 750,]$A
+    blank664 <- specs[specs$samp_conc == "Blank.Sample" & specs$nm == 664,]$A
+    blanked <- dplyr::near(0, blank750, tol = 0.001) | 
+                             dplyr::near(0, blank664, tol = 0.001)
+    if(!blanked){
+      browser()
+    } else {
+      
+    }    
   } else if(module == "phyco"){
-    spec <- read_xlsx(sfile, sheet = 1, skip = 4)
+    spec <- read_excel(sfile, sheet = 1, skip = 4)
   } else if(module == "invivo_chla"){
     #Who knows???
   }
-  browser()
+  
+  
+}
+
+#' Read and clean spec
+#' 
+#' @keywords internal
+ce_read_spec_files <- function(){
   
 }

@@ -12,10 +12,13 @@ output: github_document
 - `ce_process_exo_data()`: Prepares and combines data files from handheld YSI exo2
 
 # To Do
-- On 2021-12-07: Keep working on standard curve function
-  - have fluoro and spec files read in for phyco or ext_chla
+- On 2021-12-14: Keep working on standard curve function
+  - Keep working on blanking chl spec (look for the browser())
+  - Subtract nm664 - nm750
+  - Other stuff...
   - Need to pull out values we need from each to build the regression
   - Other things: Add warning when solid standard from sample run is > 5% from curve and then error when difference is gt 10%
+  - Expose acceptable value of years to user somehow.
 
 
 - rename input raw data files: instead of multiple dates in file name, use last date for run

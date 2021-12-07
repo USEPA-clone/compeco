@@ -22,7 +22,8 @@ Imports:
     dplyr,
     readr,
     tidyr,
-    purrr
+    purrr,
+    arrow
 License: CC0
 Encoding: UTF-8
 LazyData: true

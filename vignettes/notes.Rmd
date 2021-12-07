@@ -22,5 +22,5 @@ library(compeco)
 
 - For phyco spec file, make sure final only has single tab (i.e. the tab that has the values needed for the standard curve).  Save to compeco/inst/extdata with following stucture, "module_year_fluorometer_spec.xlsx"  Module, year, and fluorometer come from `ce_convert_rfus()` arguments.
 
-- For
+- SOP make sure method uses machine blank, not blanked after the fact.  Code accounts for either but want to standardize methods 
 

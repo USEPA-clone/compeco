@@ -11,16 +11,20 @@
 #'              environmnetal variable, NEWFTPP.  Ok to use interactively with 
 #'              user supplied password, but be careful with passwords stored in
 #'              scripts using this function.  Instead use enviornment variables.
-#'  @param output Name of output .rda file.  Using rda as its compression is 
-#'                quite good and saves space of csv.
+#'  @param output Name of output .feather file.  Using arrow::write_feather as 
+#'                file sizes are great and read/write is super fast!
 #'  @return Tibble of merged data of all buoy data.
 #'  @export
-ce_process_buoy_data <- function(remote_data = c("sftp://newftp.epa.gov/buoys/"), user = Sys.getenv("NEWFTPU"), pass = Sys.getenv("NEWFTPP"), output){
+ce_process_buoy_data <- function(remote_data = c("sftp://newftp.epa.gov/buoys/"), 
+                                 user = Sys.getenv("NEWFTPU"), 
+                                 pass = Sys.getenv("NEWFTPP"), 
+                                 output = here::here("data/merged_buoy_data.feather")){
   ce_pull_buoy_data(remote_data, user, pass)
   ce_merge_buoy_data(output)
 } 
 
 #' Pull data
+#' 
 #' 
 #' @keywords internal
 ce_pull_buoy_data <- function(...){
@@ -30,19 +34,19 @@ ce_pull_buoy_data <- function(...){
   pass <- args[[3]]
   up <- paste0(user,":", pass)
   
-  h <- new_handle()
-  handle_setopt(handle = h, httpauth = 1, userpwd = up)
-  res <- curl_fetch_memory(url = remote_data, handle = h)
+  h <- curl::new_handle()
+  curl::handle_setopt(handle = h, httpauth = 1, userpwd = up)
+  res <- curl::curl_fetch_memory(url = remote_data, handle = h)
   
   file_string <- unlist(str_split(rawToChar(res$content), "\n"))
-  files <- str_extract(file_string, "data.*csv")
+  files <- stringr::str_extract(file_string, "data.*csv")
   files <- files[!is.na(files)]
-  new_files <- files[!files %in% list.files(here("data/buoys"))]
+  new_files <- files[!files %in% list.files(here::here("data/buoys"))]
   
   for(i in new_files){
     file_url <- paste0("sftp://newftp.epa.gov/buoys/",i)
-    file_path <- paste0(here("data/buoys"), "/", i)
-    tryCatch({curl_download(file_url, i, handle = h)},
+    file_path <- paste0(here::here("data/buoys"), "/", i)
+    tryCatch({curl::curl_download(file_url, i, handle = h)},
              error = function(e) e, warning = function(w) w
     )
   }
@@ -53,14 +57,14 @@ ce_pull_buoy_data <- function(...){
 #' 
 #' @keywords internal
 ce_merge_buoy_data <- function(...){
-  files <- list.files(here("data/buoys"), full.names = TRUE)
+  files <- list.files(here::here("data/buoys"), full.names = TRUE)
   
-  if(file.exists(here("data/buoys/merged_buoy_data.rda"))){
+  if(file.exists(output)){
     # Get rda time
-    last_rda <- file.info(here("data/merged_buoy_data.rda"))$mtime
+    last_feather <- file.info(output)$mtime
     # file times
-    files <- files[file.info(files)$mtime >= last_rda]
-    load(here("data/merged_buoy_data.rda"))
+    files <- files[file.info(files)$mtime >= last_feather]
+    arrow::read_feather(output)
   } else {
     merged_buoy_data <- data.frame()
   }
@@ -74,9 +78,9 @@ ce_merge_buoy_data <- function(...){
     filter((waterbody == "shubael" & date_time >= "2021-06-10 12:00:00") |
              (waterbody == "hamblin" & date_time >= "2021-06-10 14:15"))
   
-  save(merged_buoy_data, 
-       file = here("data/merged_buoy_data.rda"),
-       compress = "xz")
+  arrow::write_feather(merged_buoy_data, sink = output)
+  
+  merged_buoy_data
 }
 
 #' clean buoy data
