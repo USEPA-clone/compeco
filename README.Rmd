@@ -24,3 +24,7 @@ output: github_document
 - rename input raw data files: instead of multiple dates in file name, use last date for run
   - no: chla_2021_8_11_&_31_&_9_15_&_10_13_&_11_4.csv
   - yes: chla_2021_11_4.csv
+  
+## Code of Conduct
+
+Please note that the compeco project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
