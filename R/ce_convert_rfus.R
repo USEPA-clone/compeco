@@ -26,7 +26,12 @@
 #' @export
 #' @examples
 #' examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
-#' ce_convert_rfus(rfu_in = examp_data)
+#' # Chla and Ours - Blanked spec
+#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", 
+#'                 fluoromter = "ours")
+#' # Chla and Theirs - Unblanked spec
+#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", 
+#'                 fluoromter = "their")                
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
