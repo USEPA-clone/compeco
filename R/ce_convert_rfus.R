@@ -51,9 +51,6 @@ ce_convert_rfus <- function(rfu_in,
 #' 
 #' @param ... Arguments for module, fluorometer and date of input standard curve
 #'            csv files.  Passed from \code{\link{ce_convert_rfus}}
-#' @importFrom readr read_csv
-#' @importFrom readxl read_excel excel_sheets
-#' @importFrom purrr map
 #' @keywords internal
 ce_create_std_curve <- function(...){
   args <- list(...)
@@ -68,14 +65,14 @@ ce_create_std_curve <- function(...){
   fluoro <- dplyr::group_by(fluoro, standard)
   fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
   fluoro <- dplyr::ungroup(fluoro)
-  blank <- fluoro2[fluoro$standard == "blank",]$avg_value
+  blank <- fluoro[fluoro$standard == "blank",]$avg_value
   fluoro <- dplyr::mutate(fluoro, blanked_value = dplyr::case_when(standard != "solid" ~ 
                                                          avg_value - blank,
                                                        TRUE ~ avg_value))
   if(module == "ext_chla"){
-    sheets <- excel_sheets(sfile)
-    specs <- map(sheets, function(x) {
-      spec <- read_excel(sfile, sheet = x, skip = 4)
+    sheets <- readxl::excel_sheets(sfile)
+    specs <- purrr::map(sheets, function(x) {
+      spec <- readxl::read_excel(sfile, sheet = x, skip = 4)
       spec <- dplyr::mutate(spec, samp_conc = x)})
     specs <- do.call(rbind, specs)
     specs <- dplyr::filter(specs, nm == 750 | nm == 664)
@@ -85,10 +82,13 @@ ce_create_std_curve <- function(...){
     blank664 <- specs[specs$samp_conc == "Blank.Sample" & specs$nm == 664,]$A
     blanked <- dplyr::near(0, blank750, tol = 0.001) | 
                              dplyr::near(0, blank664, tol = 0.001)
+    browser()
     if(!blanked){
-      browser()
-    } else {
       
+    } else {
+      specs <- tidyr::pivot_wider(specs,samp_conc,names_from = nm, 
+                                  names_prefix = "nm", values_from = A)
+      specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }    
   } else if(module == "phyco"){
     spec <- read_excel(sfile, sheet = 1, skip = 4)
