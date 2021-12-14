@@ -1,9 +1,14 @@
 #' Converts RFUs to concentration in μg/L
 #' 
 #' This functions needs input data from a fluorometer of RFU's and then
-#' uses a standard curve to make the conversion.  The standard curves are stored
-#' internally in this package and may be updated.  The module, fluorometer, and 
-#' date arguments will specify which curve data file to use.
+#' uses a standard curve to make the conversion.  The standard curves are are
+#' calculated and stored internally in this package and may be updated.  
+#' Fluorometer and spec files needed for the standard curves are detailed in 
+#' ADDSOPHERE and will work on both blanked and unblanked spec measurements.  
+#' Note that the ADDSOPHERE SOP sepcifies blanked mesaurements.  The unblanked 
+#' measurements are include for older standard curve methods but should not be 
+#' used going forward. The module, fluorometer, and date arguments will specify 
+#' which curve data file to use.  
 #' 
 #' @param rfu_in A .csv file with sample metadata and RFU.  See ADDEXAMPLEFILE
 #'                for an example of the expected file format.
