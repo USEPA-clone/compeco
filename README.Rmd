@@ -10,9 +10,10 @@ output: github_document
 - `ce_prep_rfu_file()`: Prepares input files to get converted into concentration.  Might end up being an internal function
 - `ce_process_buoy_data()`: Function to fetch buoy data from newftp.epa.gov and merge into an rda
 - `ce_process_exo_data()`: Prepares and combines data files from handheld YSI exo2
+- `ce_read_exo_data()`: Reads in an exo data file
 
 # To Do
-- On 2021-12-14: Keep working on standard curve function
+- On 2021-12-21: Keep working on standard curve function
   - Keep working on blanking chl spec (look for the browser())
   - Subtract nm664 - nm750
     - done for blanked spec
