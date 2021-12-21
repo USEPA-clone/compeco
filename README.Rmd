@@ -13,22 +13,23 @@ output: github_document
 - `ce_read_exo_data()`: Reads in an exo data file
 
 # To Do
-- On 2021-12-21: Keep working on standard curve function
-  - Keep working on blanking chl spec (look for the browser())
-  - Subtract nm664 - nm750
-    - done for blanked spec
-    - need to do for unblanked spec
-    - will need to grab a spec file with unblanked (March 2) for example
-  - Other stuff...
-  - Need to pull out values we need from each to build the regression
-  - Other things: Add warning when solid standard from sample run is > 5% from curve and then error when difference is gt 10%
-  - Expose acceptable value of years to user somehow.
-
+- On 2022-01-04: Start working on processing rfu file
+  - Other things: Add warning when solid standard from sample run is > 5% from curve and then error when difference is gt 10%.  Need to get this from ce_create_std_curve().
+  - To prep rfu file:
+    - blank correct each file, based on blanks in the data file
+    - convert rfu to concentration with calculated std curve
+    - convert cuvette concentration back to field concentration
+    - trigger for dilutions
+  - Double check ours/their fluorometer files to make sure A sample is highest and F sample is lowest. 
 
 - rename input raw data files: instead of multiple dates in file name, use last date for run
   - no: chla_2021_8_11_&_31_&_9_15_&_10_13_&_11_4.csv
   - yes: chla_2021_11_4.csv
-  
+
+# Other ideas
+- Maybe: Instead of spec/fluor for std curve internal to package, maybe also allow a user specified file(s) for that calculation.
+- Is there a diff between fresh and salt?
+
 ## Code of Conduct
 
 Please note that the compeco project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.

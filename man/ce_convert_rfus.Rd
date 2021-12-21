@@ -36,9 +36,14 @@ returns a tibble with proper metadata, input RFUs and converted
 }
 \description{
 This functions needs input data from a fluorometer of RFU's and then
-uses a standard curve to make the conversion.  The standard curves are stored
-internally in this package and may be updated.  The module, fluorometer, and 
-date arguments will specify which curve data file to use.
+uses a standard curve to make the conversion.  The standard curves are are
+calculated and stored internally in this package and may be updated.  
+Fluorometer and spec files needed for the standard curves are detailed in 
+ADDSOPHERE and will work on both blanked and unblanked spec measurements.  
+Note that the ADDSOPHERE SOP sepcifies blanked mesaurements.  The unblanked 
+measurements are include for older standard curve methods but should not be 
+used going forward. The module, fluorometer, and date arguments will specify 
+which curve data file to use.
 }
 \note{
 While it is possible to mix and match modules and fluorometers, don't 
@@ -47,5 +52,8 @@ While it is possible to mix and match modules and fluorometers, don't
 }
 \examples{
 examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
-ce_convert_rfus(rfu_in = examp_data)
+# Chla and Ours - Blanked spec
+ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "ours")
+# Chla and Theirs - Unblanked spec
+ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "theirs")                
 }

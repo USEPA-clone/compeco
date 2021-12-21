@@ -30,13 +30,11 @@
 #' @importFrom readr read_csv write_csv
 #' @export
 #' @examples
-#' examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
+#' examp_data <- system.file("extdata/chla_2021_7_14.csv", package = "compeco")
 #' # Chla and Ours - Blanked spec
-#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", 
-#'                 fluoromter = "ours")
+#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "ours")
 #' # Chla and Theirs - Unblanked spec
-#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", 
-#'                 fluoromter = "their")                
+#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "theirs")                
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
@@ -48,6 +46,17 @@ ce_convert_rfus <- function(rfu_in,
   fluorometer <- match.arg(fluorometer)
   std_curve <- ce_create_std_curve(module, year, fluorometer)
   rfus <- suppressMessages(read_csv(rfu_in))
+  sample_solid_std <- mean(rfus$value[rfus$site=="solid std"])
+  
+  # Check solid standard drift
+  perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
+  if(perc_diff >= 0.1){
+    stop("Sample solid standard is more than 10% from standard curve solid standard.")
+  } else if(perc_diff >= 0.05){
+    warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
+  }
+  
+  browser()
   
 
   if(!is.null(output)) write_csv(out, output)
@@ -76,27 +85,30 @@ ce_create_std_curve <- function(...){
   fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
   fluoro <- dplyr::ungroup(fluoro)
   blank <- fluoro[fluoro$standard == "blank",]$avg_value
-  fluoro <- dplyr::mutate(fluoro, blanked_value = dplyr::case_when(standard != "solid" ~ 
-                                                         avg_value - blank,
-                                                       TRUE ~ avg_value))
+  fluoro <- dplyr::mutate(fluoro, blanked_rfus = 
+                            dplyr::case_when(standard != "solid" ~ 
+                                               avg_value - blank,
+                                             TRUE ~ avg_value),
+                          standard = tolower(standard))
+  fluoro <- dplyr::filter(fluoro, .data$standard != "blank")
+  
   if(module == "ext_chla"){
     sheets <- readxl::excel_sheets(sfile)
     specs <- purrr::map(sheets, function(x) {
       spec <- readxl::read_excel(sfile, sheet = x, skip = 4)
-      spec <- dplyr::mutate(spec, samp_conc = x)})
+      spec <- dplyr::mutate(spec, standard = x)})
     specs <- do.call(rbind, specs)
     specs <- dplyr::filter(specs, nm == 750 | nm == 664)
     
     # Blank correction
-    blank750 <- specs[specs$samp_conc == "Blank.Sample" & specs$nm == 750,]$A
-    blank664 <- specs[specs$samp_conc == "Blank.Sample" & specs$nm == 664,]$A
+    blank750 <- specs[specs$standard == "Blank.Sample" & specs$nm == 750,]$A
+    blank664 <- specs[specs$standard == "Blank.Sample" & specs$nm == 664,]$A
     blanked <- dplyr::near(0, blank750, tol = 0.001) | 
                              dplyr::near(0, blank664, tol = 0.001)
-    browser()
     if(!blanked){
-      
+      stop("Find Jeff.  The code to deal with un-blanked spec data has not yet been written!")
     } else {
-      specs <- tidyr::pivot_wider(specs,samp_conc,names_from = nm, 
+      specs <- tidyr::pivot_wider(specs,standard,names_from = nm, 
                                   names_prefix = "nm", values_from = A)
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }    
@@ -105,8 +117,14 @@ ce_create_std_curve <- function(...){
   } else if(module == "invivo_chla"){
     #Who knows???
   }
-  
-  
+  specs <- dplyr::mutate(specs, conc = (11.4062*(.data$corrected_abs/10))*1000,
+                         standard = gsub(".sample", "", 
+                                          tolower(.data$standard)))
+  specs <- dplyr::filter(specs, .data$standard != "blank")
+  spec_fluor <- dplyr::left_join(fluoro, specs, by = "standard")
+  std_curve <- lm(conc ~ blanked_rfus, 
+                  data = spec_fluor[spec_fluor$standard != "solid",])
+  list(std_curve = std_curve, solid_std = spec_fluor$blanked_rfus[spec_fluor$standard == "solid"])
 }
 
 #' Read and clean spec
