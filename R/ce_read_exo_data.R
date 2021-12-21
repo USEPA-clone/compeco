@@ -4,6 +4,8 @@
 #' via KorEXO.  This function will read those files and convert them into a 
 #' data frame.
 #' @param exo_file Path and file name for an exo file to read
+#' @param source How were the data retrieved from the sensor.  Current options 
+#'               include "handheld" or "korexo"
 #' @param sensor_meta Logical to save sensor metadata included with input EXO 
 #'                    file. Defaults to TRUE.
 #' @param sensor_meta_file Path where sensor metadat is stored.  Defaults to a 
@@ -13,11 +15,12 @@
 #' @examples 
 #' exo_file_path <- system.file("extdata/210915-112052-_.csv", package = "compeco")
 #' ce_read_exo_data(exo_file_path)
-ce_read_exo_data <- function(exo_file, sensor_meta = TRUE, 
+ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo"),
+                             sensor_meta = TRUE, 
                              sensor_meta_file = paste0(dirname(exo_file),
                                                        "/metadata/meta_",
                                                        basename(exo_file))){
-  
+  source <- match.arg(source)
   # Deal with Metadata file
   if(sensor_meta & !dir.exists(dirname(sensor_meta_file))){
     dir.create(dirname(sensor_meta_file))
