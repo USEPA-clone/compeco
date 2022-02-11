@@ -11,15 +11,13 @@ output: github_document
 - `ce_process_buoy_data()`: Function to fetch buoy data from newftp.epa.gov and merge into an rda
 - `ce_process_exo_data()`: Prepares and combines data files from handheld YSI exo2
 - `ce_read_exo_data()`: Reads in an exo data file
+- `ce_get_nla_data()`: Function to download, clean, and merge NLA data.  This standardizes our approach, across projects, for getting this data.
 
 # To Do
-- On 2022-01-04: Start working on processing rfu file
-  - Other things: Add warning when solid standard from sample run is > 5% from curve and then error when difference is gt 10%.  Need to get this from ce_create_std_curve().
-  - To prep rfu file:
-    - blank correct each file, based on blanks in the data file
-    - convert rfu to concentration with calculated std curve
-    - convert cuvette concentration back to field concentration
-    - trigger for dilutions
+- clean up conc in ce_convert_to_conc
+  - dilutions - probably only for SuRGE - should just be a multiply by dilution factor
+  - dups, depth, reps, dilution even if not currently used
+    
   - Double check ours/their fluorometer files to make sure A sample is highest and F sample is lowest. 
 
 - rename input raw data files: instead of multiple dates in file name, use last date for run

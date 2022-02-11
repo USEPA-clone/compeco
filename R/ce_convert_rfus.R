@@ -21,7 +21,7 @@
 #'                     resides in M07. The default is "ours".
 #' @param year Year of the standard curve.  If more than one curve caluclated in
 #'             a year add "a", "b", ...  Acceptable values are:  "2021"
-#' @param output An options output path and csv file name for converted values.
+#' @param output An optional output path and csv file name for converted values.
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluorometers, don't 
@@ -31,10 +31,7 @@
 #' @export
 #' @examples
 #' examp_data <- system.file("extdata/chla_2021_7_14.csv", package = "compeco")
-#' # Chla and Ours - Blanked spec
 #' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "ours")
-#' # Chla and Theirs - Unblanked spec
-#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "theirs")                
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
@@ -45,7 +42,7 @@ ce_convert_rfus <- function(rfu_in,
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
   std_curve <- ce_create_std_curve(module, year, fluorometer)
-  rfus <- suppressMessages(read_csv(rfu_in))
+  rfus <- suppressMessages(read_csv(rfu_in, na = c("","NA","na")))
   sample_solid_std <- mean(rfus$value[rfus$site=="solid std"])
   
   # Check solid standard drift
@@ -56,10 +53,23 @@ ce_convert_rfus <- function(rfu_in,
     warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
   }
   
-  browser()
+  # Convert RFU to Concentration
+  conc <- ce_convert_to_conc(rfus, std_curve)
+  names_to_check <- c("waterbody", "site", "depth", "dups", "reps")
+  miss_names <- setdiff(names_to_check, names(conc))
+  conc[miss_names] <- NA
   
-
-  if(!is.null(output)) write_csv(out, output)
+  # Clean up output concentrations
+  conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
+                         units, value)
+  conc1 <- dplyr::mutate(conc1, variable = module)
+  conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
+                         units, value = value_field_conc)
+  conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
+  conc <- dplyr::bind_rows(conc1, conc2)
+  
+  
+  if(!is.null(output)) write_csv(conc, output)
   conc
 }
 
@@ -80,7 +90,8 @@ ce_create_std_curve <- function(...){
                   module, "_",  year, "_", fluorom, "_fluorometer.csv")
   sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
                    module, "_",  year, "_", fluorom, "_spec.xlsx")
-  fluoro <- suppressMessages(read_csv(ffile))
+  fluoro <- suppressMessages(read_csv(ffile,
+                                      na = c("","NA","na")))
   fluoro <- dplyr::group_by(fluoro, standard)
   fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
   fluoro <- dplyr::ungroup(fluoro)
@@ -95,7 +106,8 @@ ce_create_std_curve <- function(...){
   if(module == "ext_chla"){
     sheets <- readxl::excel_sheets(sfile)
     specs <- purrr::map(sheets, function(x) {
-      spec <- readxl::read_excel(sfile, sheet = x, skip = 4)
+      spec <- readxl::read_excel(sfile, sheet = x, skip = 4, 
+                                 na = c("","NA","na"))
       spec <- dplyr::mutate(spec, standard = x)})
     specs <- do.call(rbind, specs)
     specs <- dplyr::filter(specs, nm == 750 | nm == 664)
@@ -122,14 +134,33 @@ ce_create_std_curve <- function(...){
                                           tolower(.data$standard)))
   specs <- dplyr::filter(specs, .data$standard != "blank")
   spec_fluor <- dplyr::left_join(fluoro, specs, by = "standard")
-  std_curve <- lm(conc ~ blanked_rfus, 
+  std_curve <- lm(conc ~ 0 + blanked_rfus, 
                   data = spec_fluor[spec_fluor$standard != "solid",])
   list(std_curve = std_curve, solid_std = spec_fluor$blanked_rfus[spec_fluor$standard == "solid"])
 }
 
-#' Read and clean spec
+
+#' Convert RFUS to concentration
+#'
+#' This function creates takes an compeco input rfu object and standard curve 
+#' object and converts the rfus to concentration
 #' 
+#' @param rfus rfu object from \code{ce_convert_rfus}
+#' @param std_curve std_curve object from \code{ce_convert_rfus}
 #' @keywords internal
-ce_read_spec_files <- function(){
-  
+ce_convert_to_conc <- function(rfus, std_curve){
+  rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
+  blanks <- dplyr::filter(rfus, site == "blank")
+  blanks <- dplyr::group_by(blanks, waterbody, site, date)
+  blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
+  blanks <- dplyr::ungroup(blanks)
+  blanks <- dplyr::select(blanks, waterbody, date, blank_cor)
+  conc <- dplyr::left_join(rfus, blanks)
+  conc <- dplyr::filter(conc, site != "blank")
+  conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+  std_curve_slope <- coef(std_curve$std_curve)
+  conc <- dplyr::mutate(conc, value_cuvette_conc = value_cor * std_curve_slope)
+  conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.01/(filter_vol/1000)))
+  conc <- dplyr::filter(conc, site != "solid std")
+  conc
 }
