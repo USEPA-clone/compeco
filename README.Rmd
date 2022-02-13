@@ -16,10 +16,11 @@ output: github_document
 # To Do
 - clean up conc in ce_convert_to_conc
   - dilutions - probably only for SuRGE - should just be a multiply by dilution factor
+    - added to ce_convert_to_conc - make sense?
   - dups, depth, reps, dilution even if not currently used
-    
+  - PHYCO!  
   - Double check ours/their fluorometer files to make sure A sample is highest and F sample is lowest. 
-
+  - Need example input data for both ours and theirs.  
 - rename input raw data files: instead of multiple dates in file name, use last date for run
   - no: chla_2021_8_11_&_31_&_9_15_&_10_13_&_11_4.csv
   - yes: chla_2021_11_4.csv

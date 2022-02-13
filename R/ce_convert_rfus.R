@@ -30,8 +30,10 @@
 #' @importFrom readr read_csv write_csv
 #' @export
 #' @examples
-#' examp_data <- system.file("extdata/chla_2021_7_14.csv", package = "compeco")
-#' ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "ours")
+#' examp_chla_data <- system.file("extdata/chla_2021_7_14.csv", package = "compeco")
+#' examp_phyco_data <- system.file("extdata/phyco_2021_06_28.csv", package = "compeco")
+#' ce_convert_rfus(rfu_in = examp_chla_data, module = "ext_chla", fluorometer = "ours")
+#' ce_convert_rfus(rfu_in = examp_phyco_data, module = "phyco", fluorometer = "ours")
 ce_convert_rfus <- function(rfu_in, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
@@ -42,7 +44,7 @@ ce_convert_rfus <- function(rfu_in,
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
   std_curve <- ce_create_std_curve(module, year, fluorometer)
-  rfus <- suppressMessages(read_csv(rfu_in, na = c("","NA","na")))
+  rfus <- suppressMessages(readr::read_csv(rfu_in, na = c("","NA","na")))
   sample_solid_std <- mean(rfus$value[rfus$site=="solid std"])
   
   # Check solid standard drift
@@ -55,6 +57,8 @@ ce_convert_rfus <- function(rfu_in,
   
   # Convert RFU to Concentration
   conc <- ce_convert_to_conc(rfus, std_curve)
+  
+  # Add missing columns
   names_to_check <- c("waterbody", "site", "depth", "dups", "reps")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
@@ -90,7 +94,7 @@ ce_create_std_curve <- function(...){
                   module, "_",  year, "_", fluorom, "_fluorometer.csv")
   sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
                    module, "_",  year, "_", fluorom, "_spec.xlsx")
-  fluoro <- suppressMessages(read_csv(ffile,
+  fluoro <- suppressMessages(readr::read_csv(ffile,
                                       na = c("","NA","na")))
   fluoro <- dplyr::group_by(fluoro, standard)
   fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
@@ -125,7 +129,9 @@ ce_create_std_curve <- function(...){
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }    
   } else if(module == "phyco"){
-    spec <- read_excel(sfile, sheet = 1, skip = 4)
+    specs <- readxl::read_excel(sfile, sheet = 1, skip = 4)
+    browser()
+    #Need to create standard curve for phyco
   } else if(module == "invivo_chla"){
     #Who knows???
   }
@@ -162,5 +168,14 @@ ce_convert_to_conc <- function(rfus, std_curve){
   conc <- dplyr::mutate(conc, value_cuvette_conc = value_cor * std_curve_slope)
   conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.01/(filter_vol/1000)))
   conc <- dplyr::filter(conc, site != "solid std")
+
+  # Add dilution column if missing the correct for dilutions
+  dilution_col <- c("dilution")
+  miss_names <- setdiff(dilution_col, names(conc))
+  conc[miss_names] <- 1
+  conc <- dplyr::mutate(conc, value_dilute_correct = value * dilution, 
+                        value_cor_dilute_correct = value_cor * dilution,
+                        value_cuvette_conc_dilute_correct = value_cuvette_conc * 
+                          dilution)
   conc
 }
