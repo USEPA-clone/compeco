@@ -65,15 +65,17 @@ ce_convert_rfus <- function(rfu_in,
   
   # Clean up output concentrations
   conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
-                         units, value)
+                         units, value = value_cor_dilute_correct)
   conc1 <- dplyr::mutate(conc1, variable = module)
   conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
-                         units, value = value_field_conc)
+                         units, value = value_field_conc_dilute_correct)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
   
   
   if(!is.null(output)) write_csv(conc, output)
+  message(paste0("Std Curve - year: ", year, ", fluorometer: ", fluorometer, 
+                 ", slope: ", round(coef(std_curve$std_curve), 4)))
   conc
 }
 
@@ -122,26 +124,33 @@ ce_create_std_curve <- function(...){
     blanked <- dplyr::near(0, blank750, tol = 0.001) | 
                              dplyr::near(0, blank664, tol = 0.001)
     if(!blanked){
-      stop("Find Jeff.  The code to deal with un-blanked spec data has not yet been written!")
+      stop("Find Jeff and Stephen.  The code to deal with un-blanked spec data has not yet been written!")
     } else {
       specs <- tidyr::pivot_wider(specs,standard,names_from = nm, 
                                   names_prefix = "nm", values_from = A)
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
-    }    
+    }
+    specs <- dplyr::mutate(specs, conc = (11.4062*(.data$corrected_abs/10))*1000,
+                           standard = gsub(".sample", "", 
+                                           tolower(.data$standard)))
+    specs <- dplyr::filter(specs, .data$standard != "blank")
+    spec_fluor <- dplyr::left_join(fluoro, specs, by = "standard")
+    std_curve <- lm(conc ~ 0 + blanked_rfus, 
+                    data = spec_fluor[spec_fluor$standard != "solid",])
   } else if(module == "phyco"){
+    # Wont need this stuff once concentration added to fluoro file
     specs <- readxl::read_excel(sfile, sheet = 1, skip = 4)
+    nm615 <- specs[specs$nm == 615,]$A
+    nm652 <- specs[specs$nm == 652,]$A
+    prim_conc <- (nm615 - (0.474 * nm652))/5.34
+    prim_conc <- prim_conc * 1000000
+    
     browser()
     #Need to create standard curve for phyco
   } else if(module == "invivo_chla"){
     #Who knows???
   }
-  specs <- dplyr::mutate(specs, conc = (11.4062*(.data$corrected_abs/10))*1000,
-                         standard = gsub(".sample", "", 
-                                          tolower(.data$standard)))
-  specs <- dplyr::filter(specs, .data$standard != "blank")
-  spec_fluor <- dplyr::left_join(fluoro, specs, by = "standard")
-  std_curve <- lm(conc ~ 0 + blanked_rfus, 
-                  data = spec_fluor[spec_fluor$standard != "solid",])
+  
   list(std_curve = std_curve, solid_std = spec_fluor$blanked_rfus[spec_fluor$standard == "solid"])
 }
 
@@ -173,9 +182,11 @@ ce_convert_to_conc <- function(rfus, std_curve){
   dilution_col <- c("dilution")
   miss_names <- setdiff(dilution_col, names(conc))
   conc[miss_names] <- 1
-  conc <- dplyr::mutate(conc, value_dilute_correct = value * dilution, 
+  conc <- dplyr::mutate(conc,
+                        dilution = dplyr::case_when(is.na(dilution) ~ 1,
+                                             TRUE ~ dilution),
                         value_cor_dilute_correct = value_cor * dilution,
-                        value_cuvette_conc_dilute_correct = value_cuvette_conc * 
+                        value_field_conc_dilute_correct = value_field_conc * 
                           dilution)
   conc
 }
