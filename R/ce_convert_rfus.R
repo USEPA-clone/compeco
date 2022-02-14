@@ -22,6 +22,8 @@
 #' @param year Year of the standard curve.  If more than one curve caluclated in
 #'             a year add "a", "b", ...  Acceptable values are:  "2021"
 #' @param output An optional output path and csv file name for converted values.
+#' @param std_check Logical to determine if a solid standard check should be 
+#'                  done.  Defualts to TRUE.
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluorometers, don't 
@@ -38,7 +40,8 @@ ce_convert_rfus <- function(rfu_in,
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
                             fluorometer = c("ours", "theirs"),
-                            output = NULL){
+                            output = NULL,
+                            std_check = TRUE){
   
   module <- match.arg(module)
   year <- match.arg(year)
@@ -49,9 +52,9 @@ ce_convert_rfus <- function(rfu_in,
   
   # Check solid standard drift
   perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
-  if(perc_diff >= 0.1){
+  if(perc_diff >= 0.1 & std_check){
     stop("Sample solid standard is more than 10% from standard curve solid standard.")
-  } else if(perc_diff >= 0.05){
+  } else if(perc_diff >= 0.05 & std_check){
     warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
   }
   
