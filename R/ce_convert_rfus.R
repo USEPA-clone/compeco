@@ -57,11 +57,11 @@ ce_convert_rfus <- function(rfu_in,
   } else if(perc_diff >= 0.05 & std_check){
     warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
   } else {
-    message(paste("Solid standard is off by ", round(perc_diff, 1), "%."))
+    message(paste0("Solid standard is off by ", round(perc_diff*100, 1), "%."))
   }
   
   # Convert RFU to Concentration
-  conc <- ce_convert_to_conc(rfus, std_curve)
+  conc <- ce_convert_to_conc(module, rfus, std_curve)
   
   # Add missing columns
   names_to_check <- c("waterbody", "site", "depth", "dups", "reps")
@@ -170,10 +170,14 @@ ce_create_std_curve <- function(...){
 #' This function creates takes an compeco input rfu object and standard curve 
 #' object and converts the rfus to concentration
 #' 
+#' @param module which module/variable
 #' @param rfus rfu object from \code{ce_convert_rfus}
 #' @param std_curve std_curve object from \code{ce_convert_rfus}
 #' @keywords internal
-ce_convert_to_conc <- function(rfus, std_curve){
+ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"), 
+                               rfus, std_curve){
+  module <- match.arg(module)
+  
   rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
   blanks <- dplyr::filter(rfus, site == "blank")
   blanks <- dplyr::group_by(blanks, waterbody, site, date)
@@ -185,9 +189,14 @@ ce_convert_to_conc <- function(rfus, std_curve){
   conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
   std_curve_slope <- coef(std_curve$std_curve)
   conc <- dplyr::mutate(conc, value_cuvette_conc = value_cor * std_curve_slope)
-  conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.01/(filter_vol/1000)))
+  if(module == "ext_chla"){
+    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.01/(filter_vol/1000)))
+  } else if(module == "invivo_chla"){
+    stop("Who the hell knows")
+  } else if(module == "phyco"){
+    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.02/(filter_vol/1000)))
+  }
   conc <- dplyr::filter(conc, site != "solid std")
-
   # Add dilution column if missing the correct for dilutions
   dilution_col <- c("dilution")
   miss_names <- setdiff(dilution_col, names(conc))
