@@ -56,6 +56,8 @@ ce_convert_rfus <- function(rfu_in,
     stop("Sample solid standard is more than 10% from standard curve solid standard.")
   } else if(perc_diff >= 0.05 & std_check){
     warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
+  } else {
+    message(paste("Solid standard is off by ", round(perc_diff, 1), "%."))
   }
   
   # Convert RFU to Concentration
@@ -101,18 +103,17 @@ ce_create_std_curve <- function(...){
                    module, "_",  year, "_", fluorom, "_spec.xlsx")
   fluoro <- suppressMessages(readr::read_csv(ffile,
                                       na = c("","NA","na")))
-  fluoro <- dplyr::group_by(fluoro, standard)
-  fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
-  fluoro <- dplyr::ungroup(fluoro)
-  blank <- fluoro[fluoro$standard == "blank",]$avg_value
-  fluoro <- dplyr::mutate(fluoro, blanked_rfus = 
-                            dplyr::case_when(standard != "solid" ~ 
-                                               avg_value - blank,
-                                             TRUE ~ avg_value),
-                          standard = tolower(standard))
-  fluoro <- dplyr::filter(fluoro, .data$standard != "blank")
-  
   if(module == "ext_chla"){
+    fluoro <- dplyr::group_by(fluoro, standard)
+    fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
+    fluoro <- dplyr::ungroup(fluoro)
+    blank <- fluoro[fluoro$standard == "blank",]$avg_value
+    fluoro <- dplyr::mutate(fluoro, blanked_rfus = 
+                              dplyr::case_when(standard != "solid" ~ 
+                                                 avg_value - blank,
+                                               TRUE ~ avg_value),
+                            standard = tolower(standard))
+    fluoro <- dplyr::filter(fluoro, .data$standard != "blank")
     sheets <- readxl::excel_sheets(sfile)
     specs <- purrr::map(sheets, function(x) {
       spec <- readxl::read_excel(sfile, sheet = x, skip = 4, 
@@ -137,24 +138,30 @@ ce_create_std_curve <- function(...){
                            standard = gsub(".sample", "", 
                                            tolower(.data$standard)))
     specs <- dplyr::filter(specs, .data$standard != "blank")
-    spec_fluor <- dplyr::left_join(fluoro, specs, by = "standard")
+    fluoro <- dplyr::left_join(fluoro, specs, by = "standard")
     std_curve <- lm(conc ~ 0 + blanked_rfus, 
-                    data = spec_fluor[spec_fluor$standard != "solid",])
+                    data = fluoro[fluoro$standard != "solid",])
   } else if(module == "phyco"){
-    # Wont need this stuff once concentration added to fluoro file
-    specs <- readxl::read_excel(sfile, sheet = 1, skip = 4)
-    nm615 <- specs[specs$nm == 615,]$A
-    nm652 <- specs[specs$nm == 652,]$A
-    prim_conc <- (nm615 - (0.474 * nm652))/5.34
-    prim_conc <- prim_conc * 1000000
+    fluoro <- dplyr::group_by(fluoro, standard)
+    fluoro <- dplyr::summarize(fluoro, avg_value = mean(value), 
+                               conc = mean(concentration))
+    fluoro <- dplyr::ungroup(fluoro)
+    blank <- fluoro[fluoro$standard == "blank",]$avg_value
+    fluoro <- dplyr::mutate(fluoro, blanked_rfus = 
+                              dplyr::case_when(standard != "solid" ~ 
+                                                 avg_value - blank,
+                                               TRUE ~ avg_value),
+                            standard = tolower(standard))
+    fluoro <- dplyr::filter(fluoro, .data$standard != "blank")
+    std_curve <- lm(conc ~ 0 + blanked_rfus, 
+                    data = fluoro[fluoro$standard != "solid",])
     
-    browser()
     #Need to create standard curve for phyco
   } else if(module == "invivo_chla"){
     #Who knows???
   }
   
-  list(std_curve = std_curve, solid_std = spec_fluor$blanked_rfus[spec_fluor$standard == "solid"])
+  list(std_curve = std_curve, solid_std = fluoro$blanked_rfus[fluoro$standard == "solid"])
 }
 
 
