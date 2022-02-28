@@ -48,10 +48,26 @@ ce_convert_rfus <- function(rfu_in,
   fluorometer <- match.arg(fluorometer)
   std_curve <- ce_create_std_curve(module, year, fluorometer)
   rfus <- suppressMessages(readr::read_csv(rfu_in, na = c("","NA","na")))
+  if("dup" %in% names(rfus)){
+    rfus <- dplyr::rename(rfus, dups = dup)
+  }
+  if("rep" %in% names(rfus)){ 
+    rfus <- dplyr::rename(rfus, reps = rep)
+  }
+  # Add missing columns
+  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "units")
+  miss_names <- setdiff(names_to_check, names(rfus))
+  rfus[miss_names] <- NA
+  
   sample_solid_std <- mean(rfus$value[rfus$site=="solid std"])
   
   # Check solid standard drift
-  perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
+  
+  if(all(is.na(std_curve))){
+    perc_diff <- 0
+  } else {
+    perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
+  }
   if(perc_diff >= 0.1 & std_check){
     stop("Sample solid standard is more than 10% from standard curve solid standard.")
   } else if(perc_diff >= 0.05 & std_check){
@@ -70,17 +86,21 @@ ce_convert_rfus <- function(rfu_in,
   
   # Clean up output concentrations
   conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
-                         units, value = value_cor_dilute_correct)
-  conc1 <- dplyr::mutate(conc1, variable = module)
+                         units, value = value_rfu_dilute_correct)
+  conc1 <- dplyr::mutate(conc1, variable = module, units = "rfu")
   conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
                          units, value = value_field_conc_dilute_correct)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
   
-  
+  if(module == "invivo_chla"){
+    slope <- NA
+  } else {
+    slope <- coef(std_curve$std_curve)
+  }
   if(!is.null(output)) write_csv(conc, output)
   message(paste0("Std Curve - year: ", year, ", fluorometer: ", fluorometer, 
-                 ", slope: ", round(coef(std_curve$std_curve), 4)))
+                 ", slope: ", round(slope, 4)))
   conc
 }
 
@@ -97,13 +117,16 @@ ce_create_std_curve <- function(...){
   module <- args[[1]]
   year <- args[[2]]
   fluorom <- args[[3]]
-  ffile <- paste0(system.file("extdata", package = "compeco"), "/", 
-                  module, "_",  year, "_", fluorom, "_fluorometer.csv")
-  sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
-                   module, "_",  year, "_", fluorom, "_spec.xlsx")
-  fluoro <- suppressMessages(readr::read_csv(ffile,
+  if(module != "invivo_chla"){
+    ffile <- paste0(system.file("extdata", package = "compeco"), "/", 
+                    module, "_",  year, "_", fluorom, "_fluorometer.csv")
+    sfile <-  paste0(system.file("extdata", package = "compeco"), "/", 
+                     module, "_",  year, "_", fluorom, "_spec.xlsx")
+    fluoro <- suppressMessages(readr::read_csv(ffile,
                                       na = c("","NA","na")))
+  }
   if(module == "ext_chla"){
+    
     fluoro <- dplyr::group_by(fluoro, standard)
     fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
     fluoro <- dplyr::ungroup(fluoro)
@@ -156,9 +179,8 @@ ce_create_std_curve <- function(...){
     std_curve <- lm(conc ~ 0 + blanked_rfus, 
                     data = fluoro[fluoro$standard != "solid",])
     
-    #Need to create standard curve for phyco
   } else if(module == "invivo_chla"){
-    #Who knows???
+    return(NA)
   }
   
   list(std_curve = std_curve, solid_std = fluoro$blanked_rfus[fluoro$standard == "solid"])
@@ -177,24 +199,48 @@ ce_create_std_curve <- function(...){
 ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"), 
                                rfus, std_curve){
   module <- match.arg(module)
-  
-  rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
-  blanks <- dplyr::filter(rfus, site == "blank")
-  blanks <- dplyr::group_by(blanks, waterbody, site, date)
-  blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
-  blanks <- dplyr::ungroup(blanks)
-  blanks <- dplyr::select(blanks, waterbody, date, blank_cor)
-  conc <- dplyr::left_join(rfus, blanks)
-  conc <- dplyr::filter(conc, site != "blank")
-  conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
-  std_curve_slope <- coef(std_curve$std_curve)
+  if(module != "invivo_chla"){
+    
+    rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
+    blanks <- dplyr::filter(rfus, variable == "blank")
+    blanks <- dplyr::group_by(blanks, waterbody, site, date)
+    blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
+    blanks <- dplyr::ungroup(blanks)
+    blanks <- dplyr::select(blanks, waterbody, site, date, blank_cor)
+    conc <- dplyr::left_join(rfus, blanks)
+    conc <- dplyr::filter(conc, variable != "blank")
+    conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+  } else if(module == "invivo_chla"){
+    rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
+    blanks <- dplyr::filter(rfus, variable == "blank")
+    blanks <- dplyr::group_by(blanks, waterbody, site, dups, date)
+    blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
+    blanks <- dplyr::ungroup(blanks)
+    blanks <- dplyr::select(blanks, waterbody, site, date, dups, blank_cor)
+    conc <- dplyr::left_join(rfus, blanks)
+    conc <- dplyr::filter(conc, variable != "blank")
+    conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+  }
+  if(all(is.na(std_curve))){
+    std_curve_slope <- 1
+  } else {
+    std_curve_slope <- coef(std_curve$std_curve)
+  }
   conc <- dplyr::mutate(conc, value_cuvette_conc = value_cor * std_curve_slope)
   if(module == "ext_chla"){
-    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.01/(filter_vol/1000)))
+    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * 
+                            (0.01/(filter_vol/1000)))
+    conc <- dplyr::mutate(conc, value_rfu = value_cor * 
+                            (0.01/(filter_vol/1000)))
   } else if(module == "invivo_chla"){
-    stop("Who the hell knows")
+    message("Invivo chla not currently calculating concentration, still just RFUs")
+    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc)
+    conc <- dplyr::mutate(conc, value_rfu = value_cuvette_conc)
   } else if(module == "phyco"){
-    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * (0.02/(filter_vol/1000)))
+    conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * 
+                            (0.02/(filter_vol/1000)))
+    conc <- dplyr::mutate(conc, value_rfu = value_cor * 
+                            (0.02/(filter_vol/1000)))
   }
   conc <- dplyr::filter(conc, site != "solid std")
   # Add dilution column if missing the correct for dilutions
@@ -206,6 +252,7 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
                                              TRUE ~ dilution),
                         value_cor_dilute_correct = value_cor * dilution,
                         value_field_conc_dilute_correct = value_field_conc * 
-                          dilution)
+                          dilution,
+                        value_rfu_dilute_correct = value_rfu * dilution)
   conc
 }
