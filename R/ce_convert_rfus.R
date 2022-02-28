@@ -125,8 +125,9 @@ ce_create_std_curve <- function(...){
     fluoro <- suppressMessages(readr::read_csv(ffile,
                                       na = c("","NA","na")))
   }
+  
   if(module == "ext_chla"){
-    
+    fluoro <- dplyr::rename_all(fluoro, tolower)
     fluoro <- dplyr::group_by(fluoro, standard)
     fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
     fluoro <- dplyr::ungroup(fluoro)
@@ -144,17 +145,18 @@ ce_create_std_curve <- function(...){
       spec <- dplyr::mutate(spec, standard = x)})
     specs <- do.call(rbind, specs)
     specs <- dplyr::filter(specs, nm == 750 | nm == 664)
-    
+    specs <- dplyr::rename_all(specs, tolower)
     # Blank correction
-    blank750 <- specs[specs$standard == "Blank.Sample" & specs$nm == 750,]$A
-    blank664 <- specs[specs$standard == "Blank.Sample" & specs$nm == 664,]$A
+    blank750 <- specs[tolower(specs$standard) == "blank.sample" & specs$nm == 750,]$a
+    blank664 <- specs[tolower(specs$standard) == "blank.sample" & specs$nm == 664,]$a
+    
     blanked <- dplyr::near(0, blank750, tol = 0.001) | 
                              dplyr::near(0, blank664, tol = 0.001)
     if(!blanked){
       stop("Find Jeff and Stephen.  The code to deal with un-blanked spec data has not yet been written!")
     } else {
       specs <- tidyr::pivot_wider(specs,standard,names_from = nm, 
-                                  names_prefix = "nm", values_from = A)
+                                  names_prefix = "nm", values_from = a)
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }
     specs <- dplyr::mutate(specs, conc = (11.4062*(.data$corrected_abs/10))*1000,
@@ -206,9 +208,9 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     blanks <- dplyr::group_by(blanks, waterbody, site, date)
     blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
     blanks <- dplyr::ungroup(blanks)
-    blanks <- dplyr::select(blanks, waterbody, site, date, blank_cor)
-    conc <- dplyr::left_join(rfus, blanks)
-    conc <- dplyr::filter(conc, variable != "blank")
+    blanks <- dplyr::select(blanks, waterbody, date, blank_cor)
+    conc <- dplyr::filter(rfus, variable != "blank")
+    conc <- dplyr::left_join(conc, blanks)
     conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
   } else if(module == "invivo_chla"){
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
@@ -216,6 +218,7 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     blanks <- dplyr::group_by(blanks, waterbody, site, dups, date)
     blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
     blanks <- dplyr::ungroup(blanks)
+    # Do I need all these columns or just waterbody and date.  
     blanks <- dplyr::select(blanks, waterbody, site, date, dups, blank_cor)
     conc <- dplyr::left_join(rfus, blanks)
     conc <- dplyr::filter(conc, variable != "blank")
