@@ -10,7 +10,7 @@
 #' used going forward. The module, fluorometer, and date arguments will specify 
 #' which curve data file to use.  
 #' 
-#' @param rfu_in A .csv file with sample metadata and RFU.  See ADDEXAMPLEFILE
+#' @param rfus A data frame with sample metadata and RFU.  See ADDEXAMPLEFILE
 #'                for an example of the expected file format.
 #' @param module One of two options: "ext_chla", "invivo_chla", or "phyco", 
 #'                default is "ext_chla".
@@ -24,6 +24,12 @@
 #' @param output An optional output path and csv file name for converted values.
 #' @param std_check Logical to determine if a solid standard check should be 
 #'                  done.  Defualts to TRUE.
+#' @param conversion_slope This argument is used to overide the standard curves 
+#'                         that are generated internally.  If you are using a 
+#'                         different fluorometer than specified above and 
+#'                         already know the slope, specify that here as a 
+#'                         numeric.
+#' 
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluorometers, don't 
@@ -32,22 +38,30 @@
 #' @importFrom readr read_csv write_csv
 #' @export
 #' @examples
-#' examp_chla_data <- system.file("extdata/chla_2021_7_14.csv", package = "compeco")
-#' examp_phyco_data <- system.file("extdata/phyco_2021_06_28.csv", package = "compeco")
-#' ce_convert_rfus(rfu_in = examp_chla_data, module = "ext_chla", fluorometer = "ours")
-#' ce_convert_rfus(rfu_in = examp_phyco_data, module = "phyco", fluorometer = "ours")
-ce_convert_rfus <- function(rfu_in, 
+#' examp_chla_data <- readr::read_csv(system.file("extdata/chla_2021_7_14.csv", package = "compeco"), na = c("", "NA", "na"))
+#' examp_phyco_data <- readr::read_csv(system.file("extdata/phyco_2021_06_28.csv", package = "compeco"), na = c("", "NA", "na"))
+#' surge_chla <- readr::read_csv(system.file("extdata/surge_file.csv", package = "compeco"), na = c("", "NA", "na"))
+#' 
+#' ce_convert_rfus(rfus = examp_chla_data, module = "ext_chla", year = "2021", fluorometer = "theirs")
+#' ce_convert_rfus(rfus = examp_phyco_data, module = "phyco", fluorometer = "ours")
+#' ce_convert_rfus(rfus = surge_chla, year = "2022", module = "ext_chla", 
+#'                 fluorometer = "ours", std_check = FALSE)
+ce_convert_rfus <- function(rfus, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
                             fluorometer = c("ours", "theirs"),
                             output = NULL,
-                            std_check = TRUE){
-  
+                            std_check = TRUE,
+                            conversion_slope = NULL){
   module <- match.arg(module)
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
-  std_curve <- ce_create_std_curve(module, year, fluorometer)
-  rfus <- suppressMessages(readr::read_csv(rfu_in, na = c("","NA","na")))
+  if(is.null(conversion_slope)){
+    std_curve <- ce_create_std_curve(module, year, fluorometer)
+  } else {
+    std_curve <- list(std_curve = conversion_slope, solid_std = NA)
+  }
+  
   if("dup" %in% names(rfus)){
     rfus <- dplyr::rename(rfus, dups = dup)
   }
@@ -55,20 +69,22 @@ ce_convert_rfus <- function(rfu_in,
     rfus <- dplyr::rename(rfus, reps = rep)
   }
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "units")
+  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "units", 
+                      "notes")
   miss_names <- setdiff(names_to_check, names(rfus))
   rfus[miss_names] <- NA
   
-  sample_solid_std <- mean(rfus$value[rfus$site=="solid std"])
+  sample_solid_std <- mean(rfus$value[rfus$site=="solid std"], na.rm = TRUE)
   
   # Check solid standard drift
-  
   if(all(is.na(std_curve))){
     perc_diff <- 0
   } else {
     perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
   }
-  if(perc_diff >= 0.1 & std_check){
+  if(is.na(perc_diff) & !is.null(conversion_slope)){
+    message("Standard check not possible with conversion_slope argument")
+  } else if(perc_diff >= 0.1 & std_check){
     stop("Sample solid standard is more than 10% from standard curve solid standard.")
   } else if(perc_diff >= 0.05 & std_check){
     warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
@@ -80,23 +96,25 @@ ce_convert_rfus <- function(rfu_in,
   conc <- ce_convert_to_conc(module, rfus, std_curve)
   
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "dups", "reps")
+  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "notes")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
   
   # Clean up output concentrations
   conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
-                         units, value = value_rfu_dilute_correct)
+                         units, value = value_rfu_dilute_correct, notes)
   conc1 <- dplyr::mutate(conc1, variable = module, units = "rfu")
   conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
-                         units, value = value_field_conc_dilute_correct)
+                         units, value = value_field_conc_dilute_correct, notes)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
   
   if(module == "invivo_chla"){
     slope <- NA
-  } else {
+  } else if(class(std_curve$std_curve) == "lm"){
     slope <- coef(std_curve$std_curve)
+  } else {
+    slope <- std_curve$std_curve
   }
   if(!is.null(output)) write_csv(conc, output)
   message(paste0("Std Curve - year: ", year, ", fluorometer: ", fluorometer, 
@@ -127,6 +145,7 @@ ce_create_std_curve <- function(...){
   }
   
   if(module == "ext_chla"){
+    
     fluoro <- dplyr::rename_all(fluoro, tolower)
     fluoro <- dplyr::group_by(fluoro, standard)
     fluoro <- dplyr::summarize(fluoro, avg_value = mean(value))
@@ -164,6 +183,7 @@ ce_create_std_curve <- function(...){
                                            tolower(.data$standard)))
     specs <- dplyr::filter(specs, .data$standard != "blank")
     fluoro <- dplyr::left_join(fluoro, specs, by = "standard")
+    
     std_curve <- lm(conc ~ 0 + blanked_rfus, 
                     data = fluoro[fluoro$standard != "solid",])
   } else if(module == "phyco"){
@@ -200,6 +220,7 @@ ce_create_std_curve <- function(...){
 #' @keywords internal
 ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"), 
                                rfus, std_curve){
+  
   module <- match.arg(module)
   if(module != "invivo_chla"){
     
@@ -224,11 +245,15 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     conc <- dplyr::filter(conc, variable != "blank")
     conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
   }
+  
   if(all(is.na(std_curve))){
     std_curve_slope <- 1
+  } else if(is.na(std_curve$solid_std)){
+    std_curve_slope <- std_curve$std_curve
   } else {
     std_curve_slope <- coef(std_curve$std_curve)
   }
+  
   conc <- dplyr::mutate(conc, value_cuvette_conc = value_cor * std_curve_slope)
   if(module == "ext_chla"){
     conc <- dplyr::mutate(conc, value_field_conc = value_cuvette_conc * 
@@ -257,5 +282,9 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
                         value_field_conc_dilute_correct = value_field_conc * 
                           dilution,
                         value_rfu_dilute_correct = value_rfu * dilution)
+  conc <- group_by(conc, waterbody, site, depth, dups, reps, variable, day, 
+                   month, year)
+  conc <- filter(conc, dilution == max(dilution))
+  conc <- ungroup(conc)
   conc
 }
