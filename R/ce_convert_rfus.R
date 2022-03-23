@@ -63,13 +63,20 @@ ce_convert_rfus <- function(rfus,
   }
   
   if("dup" %in% names(rfus)){
-    rfus <- dplyr::rename(rfus, dups = dup)
+    rfus <- dplyr::rename(rfus, field_dups = dup)
   }
   if("rep" %in% names(rfus)){ 
-    rfus <- dplyr::rename(rfus, reps = rep)
+    rfus <- dplyr::rename(rfus, lab_reps = rep)
   }
+  if("dups" %in% names(rfus)){
+    rfus <- dplyr::rename(rfus, field_dups = dups)
+  }
+  if("reps" %in% names(rfus)){ 
+    rfus <- dplyr::rename(rfus, lab_reps = reps)
+  }
+  
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "units", 
+  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "units", 
                       "notes")
   miss_names <- setdiff(names_to_check, names(rfus))
   rfus[miss_names] <- NA
@@ -96,15 +103,15 @@ ce_convert_rfus <- function(rfus,
   conc <- ce_convert_to_conc(module, rfus, std_curve)
   
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "dups", "reps", "notes")
+  names_to_check <- c("waterbody", "site", "depth", "dups", "lab_reps", "notes")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
   
   # Clean up output concentrations
-  conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
+  conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, lab_reps, variable, 
                          units, value = value_rfu_dilute_correct, notes)
   conc1 <- dplyr::mutate(conc1, variable = module, units = "rfu")
-  conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, reps, variable, 
+  conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, lab_reps, variable, 
                          units, value = value_field_conc_dilute_correct, notes)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
@@ -236,11 +243,11 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
   } else if(module == "invivo_chla"){
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
     blanks <- dplyr::filter(rfus, variable == "blank")
-    blanks <- dplyr::group_by(blanks, waterbody, site, dups, date)
+    blanks <- dplyr::group_by(blanks, waterbody, site, field_dups, date)
     blanks <- dplyr::summarize(blanks , blank_cor = mean(value))
     blanks <- dplyr::ungroup(blanks)
     # Do I need all these columns or just waterbody and date.  
-    blanks <- dplyr::select(blanks, waterbody, site, date, dups, blank_cor)
+    blanks <- dplyr::select(blanks, waterbody, site, date, field_dups, blank_cor)
     conc <- dplyr::left_join(rfus, blanks)
     conc <- dplyr::filter(conc, variable != "blank")
     conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
@@ -282,7 +289,7 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
                         value_field_conc_dilute_correct = value_field_conc * 
                           dilution,
                         value_rfu_dilute_correct = value_rfu * dilution)
-  conc <- group_by(conc, waterbody, site, depth, dups, reps, variable, day, 
+  conc <- group_by(conc, waterbody, site, depth, field_dups, lab_reps, variable, day, 
                    month, year)
   conc <- filter(conc, dilution == max(dilution))
   conc <- ungroup(conc)
