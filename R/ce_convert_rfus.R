@@ -103,15 +103,15 @@ ce_convert_rfus <- function(rfus,
   conc <- ce_convert_to_conc(module, rfus, std_curve)
   
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "dups", "lab_reps", "notes")
+  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "notes")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
   
   # Clean up output concentrations
-  conc1 <- dplyr::select(conc, date, waterbody, site, depth, dups, lab_reps, variable, 
+  conc1 <- dplyr::select(conc, date, waterbody, site, depth, field_dups, lab_reps, variable, 
                          units, value = value_rfu_dilute_correct, notes)
   conc1 <- dplyr::mutate(conc1, variable = module, units = "rfu")
-  conc2 <- dplyr::select(conc, date, waterbody, site, depth, dups, lab_reps, variable, 
+  conc2 <- dplyr::select(conc, date, waterbody, site, depth, field_dups, lab_reps, variable, 
                          units, value = value_field_conc_dilute_correct, notes)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
