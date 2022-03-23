@@ -14,11 +14,11 @@
 #'                for an example of the expected file format.
 #' @param module One of two options: "ext_chla", "invivo_chla", or "phyco", 
 #'                default is "ext_chla".
-#' @param fluorometer One of two options: "ours" or "theirs", default is 
-#'                     "ours". These represent the two Turner Triology's at
-#'                     ACESD.  The "ours" one was purchased by the compeco lab, 
-#'                     the "theirs", has been in use for sometime and currently 
-#'                     resides in M07. The default is "ours".
+#' @param fluorometer One of two options: "g04" or "m07", default is 
+#'                     "g04". These represent the two Turner Triology's at
+#'                     ACESD.  The "g04" one was purchased by the compeco lab, 
+#'                     the "m07", has been in use for sometime and currently 
+#'                     resides in M07. The default is "g04".
 #' @param year Year of the standard curve.  If more than one curve caluclated in
 #'             a year add "a", "b", ...  Acceptable values are:  "2021"
 #' @param output An optional output path and csv file name for converted values.
@@ -33,7 +33,7 @@
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluorometers, don't 
-#'        do this.  Keep the "ours" modules with the "ours" fluorometer 
+#'        do this.  Keep the "g04" modules with the "g04" fluorometer 
 #'        and vice-versa. 
 #' @importFrom readr read_csv write_csv
 #' @export
@@ -42,14 +42,14 @@
 #' examp_phyco_data <- readr::read_csv(system.file("extdata/phyco_2021_06_28.csv", package = "compeco"), na = c("", "NA", "na"))
 #' surge_chla <- readr::read_csv(system.file("extdata/surge_file.csv", package = "compeco"), na = c("", "NA", "na"))
 #' 
-#' ce_convert_rfus(rfus = examp_chla_data, module = "ext_chla", year = "2021", fluorometer = "theirs")
-#' ce_convert_rfus(rfus = examp_phyco_data, module = "phyco", fluorometer = "ours")
+#' ce_convert_rfus(rfus = examp_chla_data, module = "ext_chla", year = "2021", fluorometer = "m07")
+#' ce_convert_rfus(rfus = examp_phyco_data, module = "phyco", fluorometer = "g04")
 #' ce_convert_rfus(rfus = surge_chla, year = "2022", module = "ext_chla", 
-#'                 fluorometer = "ours", std_check = FALSE)
+#'                 fluorometer = "g04", std_check = FALSE)
 ce_convert_rfus <- function(rfus, 
                             module = c("ext_chla", "invivo_chla", "phyco"),
                             year = years,
-                            fluorometer = c("ours", "theirs"),
+                            fluorometer = c("g04", "m07"),
                             output = NULL,
                             std_check = TRUE,
                             conversion_slope = NULL){
