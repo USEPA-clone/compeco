@@ -6,12 +6,16 @@
 \usage{
 ce_read_exo_data(
   exo_file,
+  source = c("handheld", "korexo"),
   sensor_meta = TRUE,
-  sensor_meta_file = paste0(dirname(exo_file), "/metadata/", basename(exo_file))
+  sensor_meta_file = paste0(dirname(exo_file), "/metadata/meta_", basename(exo_file))
 )
 }
 \arguments{
 \item{exo_file}{Path and file name for an exo file to read}
+
+\item{source}{How were the data retrieved from the sensor.  Current options 
+include "handheld" or "korexo"}
 
 \item{sensor_meta}{Logical to save sensor metadata included with input EXO 
 file. Defaults to TRUE.}

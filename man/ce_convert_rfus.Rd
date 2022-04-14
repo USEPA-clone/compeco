@@ -5,15 +5,17 @@
 \title{Converts RFUs to concentration in μg/L}
 \usage{
 ce_convert_rfus(
-  rfu_in,
+  rfus,
   module = c("ext_chla", "invivo_chla", "phyco"),
   year = years,
-  fluorometer = c("ours", "theirs"),
-  output = NULL
+  fluorometer = c("g04", "m07"),
+  output = NULL,
+  std_check = TRUE,
+  conversion_slope = NULL
 )
 }
 \arguments{
-\item{rfu_in}{A .csv file with sample metadata and RFU.  See ADDEXAMPLEFILE
+\item{rfus}{A data frame with sample metadata and RFU.  See ADDEXAMPLEFILE
 for an example of the expected file format.}
 
 \item{module}{One of two options: "ext_chla", "invivo_chla", or "phyco", 
@@ -22,13 +24,22 @@ default is "ext_chla".}
 \item{year}{Year of the standard curve.  If more than one curve caluclated in
 a year add "a", "b", ...  Acceptable values are:  "2021"}
 
-\item{fluorometer}{One of two options: "ours" or "theirs", default is 
-"ours". These represent the two Turner Triology's at
-ACESD.  The "ours" one was purchased by the compeco lab, 
-the "theirs", has been in use for sometime and currently 
-resides in M07. The default is "ours".}
+\item{fluorometer}{One of two options: "g04" or "m07", default is 
+"g04". These represent the two Turner Triology's at
+ACESD.  The "g04" one was purchased by the compeco lab, 
+the "m07", has been in use for sometime and currently 
+resides in M07. The default is "g04".}
 
-\item{output}{An options output path and csv file name for converted values.}
+\item{output}{An optional output path and csv file name for converted values.}
+
+\item{std_check}{Logical to determine if a solid standard check should be 
+done.  Defualts to TRUE.}
+
+\item{conversion_slope}{This argument is used to overide the standard curves 
+that are generated internally.  If you are using a 
+different fluorometer than specified above and 
+already know the slope, specify that here as a 
+numeric.}
 }
 \value{
 returns a tibble with proper metadata, input RFUs and converted
@@ -47,13 +58,16 @@ which curve data file to use.
 }
 \note{
 While it is possible to mix and match modules and fluorometers, don't 
-       do this.  Keep the "ours" modules with the "ours" fluorometer 
+       do this.  Keep the "g04" modules with the "g04" fluorometer 
        and vice-versa.
 }
 \examples{
-examp_data <- system.file("extdata/chla_2021_7_29.csv", package = "compeco")
-# Chla and Ours - Blanked spec
-ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "ours")
-# Chla and Theirs - Unblanked spec
-ce_convert_rfus(rfu_in = examp_data, module = "ext_chla", fluorometer = "theirs")                
+examp_chla_data <- readr::read_csv(system.file("extdata/chla_2021_7_14.csv", package = "compeco"), na = c("", "NA", "na"))
+examp_phyco_data <- readr::read_csv(system.file("extdata/phyco_2021_06_28.csv", package = "compeco"), na = c("", "NA", "na"))
+surge_chla <- readr::read_csv(system.file("extdata/surge_file.csv", package = "compeco"), na = c("", "NA", "na"))
+
+ce_convert_rfus(rfus = examp_chla_data, module = "ext_chla", year = "2021", fluorometer = "m07")
+ce_convert_rfus(rfus = examp_phyco_data, module = "phyco", fluorometer = "g04")
+ce_convert_rfus(rfus = surge_chla, year = "2022", module = "ext_chla", 
+                fluorometer = "g04", std_check = FALSE)
 }
