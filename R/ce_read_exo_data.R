@@ -13,35 +13,20 @@
 ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
   browser()
   source <- match.arg(source)
-  # Deal with Metadata file
-  if(sensor_meta & !dir.exists(dirname(sensor_meta_file))){
-    dir.create(dirname(sensor_meta_file))
-  } else if(sensor_meta){
-    if(file.exists(sensor_meta_file)){
-      message(paste0("The ", basename(sensor_meta_file), " file exists.  Creating new file with incremented ID added."))
-      existing_files <- list.files(dirname(sensor_meta_file), 
-                                   pattern = gsub(".csv", "", 
-                                                  basename(sensor_meta_file)))
-      existing_files <- gsub(".csv", "", existing_files)
-      if(length(existing_files) > 1){
-        number <- stringr::str_extract(existing_files, "[0-9]*$")
-        number <- as.numeric(number)
-        number <- as.character(number + 1)
-        if(nchar(number) == 1){number <- paste0("0", number)}
-        sensor_meta_file <- paste0(tools::file_path_sans_ext(sensor_meta_file), 
-                                   number, ".",
-                                   tools::file_ext(sensor_meta_file))
-      } else {
-        sensor_meta_file <- paste0(tools::file_path_sans_ext(sensor_meta_file), 
-                                   "01.", tools::file_ext(sensor_meta_file))
-      }
-    }
-    meta <- readLines(exo_file, skipNul = TRUE)
-    idx <- which(stringr::str_detect(meta, "^Date")) - 1
-    writeLines(meta[1:idx], sensor_meta_file,sep = ",")
-    
+  # Reading In Files
+  if(readr::guess_encoding(exo_file)[1,1] == "UTF-16LE" & readr::guess_encoding(exo_file)[1,2] == 1){
+    x_utf16 <- readBin(exo_file, "raw", n = file.size(exo_file))
+    x_utf8 <- iconv(list(x_utf16), from = "UTF-16LE", to = "UTF-8", toRaw = TRUE)[[1]]
+    exo <- readr::read_csv(x_utf8, col_names = FALSE)
+    exo_begin <- which(str_detect(exo[[1]], "Date"))
+    exo <- readr::read_csv(x_utf8, skip = exo_begin)
+    # Could pull header data here that **should** eventuall have waterbody/site
+  } else {
+    exo <- readr::read_csv(exo_file, col_names = FALSE)
+    exo_begin <- which(str_detect(exo[[1]], "Date"))
+    exo <- readr::read_csv(x_utf8, skip = exo_begin)
   }
-  
+    
   
   # Pull out metadata portion and save
   
