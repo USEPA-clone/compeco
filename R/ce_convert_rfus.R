@@ -103,7 +103,7 @@ ce_convert_rfus <- function(rfus,
   conc <- ce_convert_to_conc(module, rfus, std_curve)
   
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "notes")
+  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "notes", "time")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
   
