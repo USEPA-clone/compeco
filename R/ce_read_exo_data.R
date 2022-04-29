@@ -11,7 +11,7 @@
 #' exo_file_path <- system.file("extdata/210915-112052-_.csv", package = "compeco")
 #' ce_read_exo_data(exo_file_path)
 ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
-  browser()
+  
   source <- match.arg(source)
   # Reading In Files
   if(readr::guess_encoding(exo_file)[1,1] == "UTF-16LE" & 
