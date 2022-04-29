@@ -2,27 +2,15 @@
 % Please edit documentation in R/ce_read_exo_data.R
 \name{ce_read_exo_data}
 \alias{ce_read_exo_data}
-\title{Reads in a EXO data file}
+\title{Reads and cleans an EXO2 data file}
 \usage{
-ce_read_exo_data(
-  exo_file,
-  source = c("handheld", "korexo"),
-  sensor_meta = TRUE,
-  sensor_meta_file = paste0(dirname(exo_file), "/metadata/meta_", basename(exo_file))
-)
+ce_read_exo_data(exo_file, source = c("handheld", "korexo"))
 }
 \arguments{
 \item{exo_file}{Path and file name for an exo file to read}
 
 \item{source}{How were the data retrieved from the sensor.  Current options 
 include "handheld" or "korexo"}
-
-\item{sensor_meta}{Logical to save sensor metadata included with input EXO 
-file. Defaults to TRUE.}
-
-\item{sensor_meta_file}{Path where sensor metadat is stored.  Defaults to a 
-metadata folder in the same folder as the 
-\code{exo_file}.}
 }
 \description{
 Data files pulled from a YSI EXO sonde come from either a YSI handheld or 

@@ -7,7 +7,7 @@
 ce_convert_rfus(
   rfus,
   module = c("ext_chla", "invivo_chla", "phyco"),
-  year = years,
+  year = c("2021", "2022"),
   fluorometer = c("g04", "m07"),
   output = NULL,
   std_check = TRUE,

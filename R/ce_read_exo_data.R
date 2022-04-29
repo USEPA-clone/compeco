@@ -11,7 +11,7 @@
 #' exo_file_path <- system.file("extdata/210915-112052-_.csv", package = "compeco")
 #' ce_read_exo_data(exo_file_path)
 ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
-  
+  browser()
   source <- match.arg(source)
   # Reading In Files
   if(readr::guess_encoding(exo_file)[1,1] == "UTF-16LE" & 
@@ -20,18 +20,30 @@ ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
     x_utf8 <- iconv(list(x_utf16), from = "UTF-16LE", to = "UTF-8", 
                     toRaw = TRUE)[[1]]
     exo <- readr::read_csv(x_utf8, col_names = FALSE)
-    waterbody <- as.character(exo[exo$X1 == "Site:",2])
-    exo_begin <- which(str_detect(exo[[1]], "Date"))
-    exo <- readr::read_csv(x_utf8, skip = exo_begin)
-    exo <- dplyr::mutate(exo, waterbody = waterbody)
+    if(ncol(exo) > 1){
+      waterbody <- as.character(exo[exo$X1 == "Site:",2])
+      exo_begin <- which(str_detect(exo[[1]], "Date"))
+      exo <- readr::read_csv(x_utf8, skip = exo_begin)
+      exo <- dplyr::mutate(exo, waterbody = waterbody)
+    } else {
+      warning("EXO file did not contain data")
+      return(NA)
+    }
     # Could pull header data here that **should** eventually have waterbody/site
   } else {
     exo <- readr::read_csv(exo_file, col_names = FALSE)
-    waterbody <- exo[exo$X1 == "Site:",2]
-    exo_begin <- which(stringr::str_detect(exo[[1]], "Date"))
-    exo <- readr::read_csv(x_utf8, skip = exo_begin)
+    if(ncol(exo) > 1){
+      waterbody <- exo[exo$X1 == "Site:",2]
+      exo_begin <- which(stringr::str_detect(exo[[1]], "Date"))
+      exo <- readr::read_csv(x_utf8, skip = exo_begin)
+      exo <- dplyr::mutate(exo, waterbody = waterbody)
+    } else {
+      warning("EXO file did not contain data")
+      return(NA)
+    }
   }
   # Need to figure out site stuff from EXO2 as well
+  # FIGURE OUT BAD FILE OUTPUT
   exo <- dplyr::mutate(exo, waterbody = waterbody, field_dups = NA_real_, 
                        lab_reps = NA_real_, site = NA_character_, 
                        notes = NA_character_)
