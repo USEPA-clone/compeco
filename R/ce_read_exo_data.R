@@ -38,12 +38,11 @@ ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
       exo <- readr::read_csv(x_utf8, skip = exo_begin)
       exo <- dplyr::mutate(exo, waterbody = waterbody)
     } else {
-      warning("EXO file did not contain data")
+      warning("EXO file did not contain data, returning NA")
       return(NA)
     }
   }
   # Need to figure out site stuff from EXO2 as well
-  # FIGURE OUT BAD FILE OUTPUT
   exo <- dplyr::mutate(exo, waterbody = waterbody, field_dups = NA_real_, 
                        lab_reps = NA_real_, site = NA_character_, 
                        notes = NA_character_)
