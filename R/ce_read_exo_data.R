@@ -98,7 +98,7 @@ ce_read_exo_data <- function(exo_file, source = c("handheld", "korexo")){
                                             variable == "do_perc" ~
                                               "do",
                                             TRUE ~ variable),
-                       date = lubridate::ymd(date))
+                       date = lubridate::mdy(date))
   exo <- dplyr::select(exo, date, time, waterbody, site, depth, field_dups, lab_reps, variable, 
                        units, value, notes)
   exo
