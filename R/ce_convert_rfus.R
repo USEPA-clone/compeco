@@ -29,13 +29,15 @@
 #'                         different fluorometer than specified above and 
 #'                         already know the slope, specify that here as a 
 #'                         numeric.
-#' 
+#' @param blank_correction Optional arguement to correct (or not) RFU values  
+#'                         with blank RFUs.  Default is TRUE
 #' @return returns a tibble with proper metadata, input RFUs and converted
 #'          concentrations                     
 #' @note While it is possible to mix and match modules and fluorometers, don't 
 #'        do this.  Keep the "g04" modules with the "g04" fluorometer 
 #'        and vice-versa. 
 #' @importFrom readr read_csv write_csv
+#' @importFrom dplyr group_by
 #' @export
 #' @examples
 #' examp_chla_data <- readr::read_csv(system.file("extdata/chla_2021_7_14.csv", package = "compeco"), na = c("", "NA", "na"))
@@ -52,7 +54,10 @@ ce_convert_rfus <- function(rfus,
                             fluorometer = c("g04", "m07"),
                             output = NULL,
                             std_check = TRUE,
-                            conversion_slope = NULL){
+                            conversion_slope = NULL,
+                            blank_correction = TRUE){
+  
+  
   module <- match.arg(module)
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
@@ -61,6 +66,7 @@ ce_convert_rfus <- function(rfus,
   } else {
     std_curve <- list(std_curve = conversion_slope, solid_std = NA)
   }
+  
   
   if("dup" %in% names(rfus)){
     rfus <- dplyr::rename(rfus, field_dups = dup)
@@ -76,8 +82,7 @@ ce_convert_rfus <- function(rfus,
   }
   
   # Add missing columns
-  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "units", 
-                      "notes")
+  names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "units", "notes")
   miss_names <- setdiff(names_to_check, names(rfus))
   rfus[miss_names] <- NA
   
@@ -89,23 +94,30 @@ ce_convert_rfus <- function(rfus,
   } else {
     perc_diff <- abs(1-(sample_solid_std/std_curve$solid_std))
   }
+  
+  perc_diff <- round(perc_diff, 3) * 100
+  
   if(is.na(perc_diff) & !is.null(conversion_slope)){
     message("Standard check not possible with conversion_slope argument")
-  } else if(perc_diff >= 0.1 & std_check){
-    stop("Sample solid standard is more than 10% from standard curve solid standard.")
-  } else if(perc_diff >= 0.05 & std_check){
-    warning("Sample solid standard is more than 5% from standard curve solid standard.  A new standard curve may be required.")
+  } else if(is.na(perc_diff)){
+    message(paste0("Calculation of percent diff did not succeed and returned ", perc_diff))
+  } else if(perc_diff >= 10 & std_check){
+    stop(paste0("Sample solid standard is ", perc_diff, "% off from standard curve solid standard."))
+  } else if(perc_diff >= 5 & std_check){
+    warning(paste0("Sample solid standard is ", perc_diff, "% off from standard curve solid standard."))
   } else {
-    message(paste0("Solid standard is off by ", round(perc_diff*100, 1), "%."))
+    message(paste0("Solid standard is off by ", perc_diff, "%."))
   }
   
   # Convert RFU to Concentration
-  conc <- ce_convert_to_conc(module, rfus, std_curve)
+  conc <- ce_convert_to_conc(module, rfus, std_curve, blank_correction)
   
   # Add missing columns
   names_to_check <- c("waterbody", "site", "depth", "field_dups", "lab_reps", "notes", "time")
   miss_names <- setdiff(names_to_check, names(conc))
   conc[miss_names] <- NA
+  
+  
   
   # Clean up output concentrations
   conc1 <- dplyr::select(conc, date, waterbody, site, depth, field_dups, lab_reps, variable, 
@@ -185,6 +197,7 @@ ce_create_std_curve <- function(...){
                                   names_prefix = "nm", values_from = a)
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }
+    
     specs <- dplyr::mutate(specs, conc = (11.4062*(.data$corrected_abs/10))*1000,
                            standard = gsub(".sample", "", 
                                            tolower(.data$standard)))
@@ -226,9 +239,11 @@ ce_create_std_curve <- function(...){
 #' @param std_curve std_curve object from \code{ce_convert_rfus}
 #' @keywords internal
 ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"), 
-                               rfus, std_curve){
-  
+                               rfus, std_curve, blank_correction = TRUE){
   module <- match.arg(module)
+  rfus <- dplyr::mutate(rfus, 
+                        variable = dplyr::case_when(lab_reps == "blank" ~ "blank", 
+                                                    TRUE ~ variable))
   if(module != "invivo_chla"){
     
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
@@ -239,7 +254,11 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     blanks <- dplyr::select(blanks, waterbody, date, blank_cor)
     conc <- dplyr::filter(rfus, variable != "blank")
     conc <- dplyr::left_join(conc, blanks)
-    conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+    if(blank_correction){
+      conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+    } else {
+      conc <- dplyr::mutate(conc, value_cor = value)
+    }
   } else if(module == "invivo_chla"){
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
     blanks <- dplyr::filter(rfus, variable == "blank")
@@ -250,7 +269,11 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     blanks <- dplyr::select(blanks, waterbody, site, date, field_dups, blank_cor)
     conc <- dplyr::left_join(rfus, blanks)
     conc <- dplyr::filter(conc, variable != "blank")
-    conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+    if(blank_correction){
+      conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
+    } else {
+      conc <- dplyr::mutate(conc, value_cor = value)
+    }
   }
   
   if(all(is.na(std_curve))){
@@ -278,10 +301,25 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
                             (0.02/(filter_vol/1000)))
   }
   conc <- dplyr::filter(conc, site != "solid std")
+  
   # Add dilution column if missing the correct for dilutions
   dilution_col <- c("dilution")
   miss_names <- setdiff(dilution_col, names(conc))
   conc[miss_names] <- 1
+  
+  
+  # Fix any dilutions with "x"
+  # Seeing problems with fedsdata/turner/chl_2021_07_28.csv
+  
+  conc <- dplyr::mutate(conc,
+                        dilution = as.character(dilution),
+                        dilution = 
+                          dplyr::case_when(grepl("x", dilution, ignore.case = TRUE) ~ 
+                                      gsub("x", "", dilution, 
+                                           ignore.case = TRUE),
+                                    TRUE ~ dilution),
+                        dilution = as.numeric(dilution))
+ 
   conc <- dplyr::mutate(conc,
                         dilution = dplyr::case_when(is.na(dilution) ~ 1,
                                              TRUE ~ dilution),
@@ -289,9 +327,10 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
                         value_field_conc_dilute_correct = value_field_conc * 
                           dilution,
                         value_rfu_dilute_correct = value_rfu * dilution)
-  conc <- group_by(conc, waterbody, site, depth, field_dups, lab_reps, variable, day, 
+  conc <- dplyr::group_by(conc, waterbody, site, depth, field_dups, lab_reps, variable, day, 
                    month, year)
-  conc <- filter(conc, dilution == max(dilution))
-  conc <- ungroup(conc)
+  
+  conc <- dplyr::filter(conc, dilution == max(.data$dilution))
+  conc <- dplyr::ungroup(conc)
   conc
 }
