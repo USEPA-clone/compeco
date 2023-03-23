@@ -5,8 +5,7 @@
 \title{Function to get 2007 NLA toxin data}
 \usage{
 get_nla_2007_toxin(
- 
-    nla_rec_cond_file = "data/nla2007/NLA2007_Recreational_ConditionEstimates_20091123.csv"
+  nla_rec_cond_file = "data/nla2007/NLA2007_Recreational_ConditionEstimates_20091123.csv"
 )
 }
 \arguments{

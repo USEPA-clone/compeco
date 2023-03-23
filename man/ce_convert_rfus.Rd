@@ -11,7 +11,8 @@ ce_convert_rfus(
   fluorometer = c("g04", "m07"),
   output = NULL,
   std_check = TRUE,
-  conversion_slope = NULL
+  conversion_slope = NULL,
+  blank_correction = TRUE
 )
 }
 \arguments{
@@ -40,6 +41,9 @@ that are generated internally.  If you are using a
 different fluorometer than specified above and 
 already know the slope, specify that here as a 
 numeric.}
+
+\item{blank_correction}{Optional arguement to correct (or not) RFU values
+with blank RFUs.  Default is TRUE}
 }
 \value{
 returns a tibble with proper metadata, input RFUs and converted

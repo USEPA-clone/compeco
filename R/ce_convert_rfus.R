@@ -193,7 +193,7 @@ ce_create_std_curve <- function(...){
     if(!blanked){
       stop("Find Jeff and Stephen.  The code to deal with un-blanked spec data has not yet been written!")
     } else {
-      specs <- tidyr::pivot_wider(specs,standard,names_from = nm, 
+      specs <- tidyr::pivot_wider(specs,id_cols = standard,names_from = nm, 
                                   names_prefix = "nm", values_from = a)
       specs <- dplyr::mutate(specs, corrected_abs = nm664 - nm750)
     }
@@ -244,6 +244,7 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
   rfus <- dplyr::mutate(rfus, 
                         variable = dplyr::case_when(lab_reps == "blank" ~ "blank", 
                                                     TRUE ~ variable))
+  
   if(module != "invivo_chla"){
     
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
@@ -260,6 +261,7 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
       conc <- dplyr::mutate(conc, value_cor = value)
     }
   } else if(module == "invivo_chla"){
+    
     rfus <- dplyr::mutate(rfus, date = lubridate::ymd(paste(year, month, day)))
     blanks <- dplyr::filter(rfus, variable == "blank")
     blanks <- dplyr::group_by(blanks, waterbody, site, field_dups, date)
@@ -300,8 +302,10 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     conc <- dplyr::mutate(conc, value_rfu = value_cor * 
                             (0.02/(filter_vol/1000)))
   }
+  idx_site <- is.na(conc$site)
+  conc$site[idx_site] <- "missing damnit"
   conc <- dplyr::filter(conc, site != "solid std")
-  
+
   # Add dilution column if missing the correct for dilutions
   dilution_col <- c("dilution")
   miss_names <- setdiff(dilution_col, names(conc))
@@ -333,4 +337,29 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
   conc <- dplyr::filter(conc, dilution == max(.data$dilution))
   conc <- dplyr::ungroup(conc)
   conc
+}
+
+#' Export Standard Curve
+#' 
+#' This function exports the linear model for the different standard curves.
+#' 
+#' @param module One of two options: "ext_chla", "invivo_chla", or "phyco", 
+#'                default is "ext_chla".
+#' @param fluorometer One of two options: "g04" or "m07", default is 
+#'                     "g04". These represent the two Turner Triology's at
+#'                     ACESD.  The "g04" one was purchased by the compeco lab, 
+#'                     the "m07", has been in use for sometime and currently 
+#'                     resides in M07. The default is "g04".
+#' @param year Year of the standard curve.  If more than one curve caluclated in
+#'             a year add "a", "b", ...  Acceptable values are:  "2021" for
+#'             all but ext_chla and g04.  That has "2021" and "2022".
+#'             
+#' @export
+#' @examples 
+#' ce_export_std_curve("ext_chla", "g04", "2022")
+ce_export_std_curve <- function(module, fluorometer, year){
+  std_curve <- ce_create_std_curve(module, year, fluorometer)
+  list(std_curve = std_curve$std_curve, 
+       data = tibble::tibble(std_curve$std_curve$model), 
+       r2 = summary(std_curve$std_curve)$r.squared)
 }

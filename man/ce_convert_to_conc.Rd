@@ -7,7 +7,8 @@
 ce_convert_to_conc(
   module = c("ext_chla", "invivo_chla", "phyco"),
   rfus,
-  std_curve
+  std_curve,
+  blank_correction = TRUE
 )
 }
 \arguments{
