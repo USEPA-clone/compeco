@@ -86,7 +86,7 @@ ce_convert_rfus <- function(rfus,
   miss_names <- setdiff(names_to_check, names(rfus))
   rfus[miss_names] <- NA
   
-  sample_solid_std <- mean(rfus$value[rfus$site=="solid std"], na.rm = TRUE)
+  sample_solid_std <- mean(rfus$value[grepl("solid std", rfus$site)], na.rm = TRUE)
   
   # Check solid standard drift
   if(all(is.na(std_curve))){
@@ -127,6 +127,16 @@ ce_convert_rfus <- function(rfus,
                          units, value = value_field_conc_dilute_correct, notes)
   conc2 <- dplyr::mutate(conc2, variable = module, units = "µg/L")
   conc <- dplyr::bind_rows(conc1, conc2)
+  conc <- dplyr::mutate(conc, 
+                        waterbody = as.character(waterbody),
+                        site = as.character(site),
+                        depth = as.character(depth),
+                        field_dups = as.character(field_dups),
+                        lab_reps = as.character(lab_reps),
+                        variable = as.character(variable),
+                        units = as.character(units),
+                        value = as.double(value),
+                        notes = as.character(notes))
   
   if(module == "invivo_chla"){
     slope <- NA
