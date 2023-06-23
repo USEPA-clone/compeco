@@ -371,5 +371,6 @@ ce_export_std_curve <- function(module, fluorometer, year){
   std_curve <- ce_create_std_curve(module, year, fluorometer)
   list(std_curve = std_curve$std_curve, 
        data = tibble::tibble(std_curve$std_curve$model), 
-       r2 = summary(std_curve$std_curve)$r.squared)
+       r2 = summary(std_curve$std_curve)$r.squared,
+       solid_std = std_curve$solid_std)
 }
