@@ -1,6 +1,6 @@
 Package: compeco
 Title: ACESD computational ecology HABlab package
-Version: 0.0.5.9999
+Version: 0.0.6.9999
 Authors@R: c(person("Jeffrey", "Hollister", email = "hollister.jeff@epa.gov", 
                   role = c("aut", "cre"), 
                   comment = c(ORCID = "0000-0002-9254-9740")),
@@ -9,8 +9,9 @@ Authors@R: c(person("Jeffrey", "Hollister", email = "hollister.jeff@epa.gov",
 URL: https://github.com/jhollist/compeco/
 BugReports: https://github.com/jhollist/compeco/issues/
 Maintainer: Jeffrey Hollister <hollister.jeff@epa.gov>
-Description: Collection of R packages used by the ACESD computational ecology 
-             HABlab (ACESDCEHL) for various computational tasks that are not 
+Description: Collection of R packages used by the ACESD Freshwater Ecology and
+             Data Scinece Lab, formerly known as the ACESD computational ecology 
+             HABlab (FEDSLABfkaACESDCEHL) for various computational tasks that are not 
              project sepcific.
 Depends: R (>= 3.6.2)
 Imports:
@@ -28,7 +29,7 @@ Imports:
 License: CC0
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0),
     knitr,

@@ -57,7 +57,12 @@ ce_convert_rfus <- function(rfus,
                             conversion_slope = NULL,
                             blank_correction = TRUE){
   
-  
+  day_na <- any(is.na(rfus$day))
+  month_na <- any(is.na(rfus$month))
+  year_na <- any(is.na(rfus$year))
+  if(any(c(day_na, month_na, year_na))){
+    stop("At least one of the dates is missing.  Correct data file and note change.")
+  }
   module <- match.arg(module)
   year <- match.arg(year)
   fluorometer <- match.arg(fluorometer)
@@ -148,6 +153,14 @@ ce_convert_rfus <- function(rfus,
   if(!is.null(output)) write_csv(conc, output)
   message(paste0("Std Curve - year: ", year, ", fluorometer: ", fluorometer, 
                  ", slope: ", round(slope, 4)))
+  
+  # Add perc_diff to Notes
+  conc <- conc |>
+    mutate(notes = case_when(is.na(notes)~
+                              paste0("solid std drift: ", perc_diff),
+                            !is.na(notes)~
+                              paste0(notes, "; solid std drift: ", perc_diff, "%"),
+                            TRUE ~ notes))
   conc
 }
 
@@ -266,6 +279,12 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     conc <- dplyr::filter(rfus, variable != "blank")
     conc <- dplyr::left_join(conc, blanks)
     if(blank_correction){
+      if(any(is.na(conc$blank_cor))){
+        conc <- mutate(conc, blank_cor = case_when(is.na(blank_cor) ~
+                                                     0,
+                                                   TRUE ~ blank_cor))
+        message("Blank correction is set to true, but some blanks are NA.  Changing blanks to 0.")
+      }
       conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
     } else {
       conc <- dplyr::mutate(conc, value_cor = value)
@@ -282,6 +301,12 @@ ce_convert_to_conc <- function(module = c("ext_chla", "invivo_chla", "phyco"),
     conc <- dplyr::left_join(rfus, blanks)
     conc <- dplyr::filter(conc, variable != "blank")
     if(blank_correction){
+      if(any(is.na(conc$blank_cor))){
+        conc <- mutate(conc, blank_cor = case_when(is.na(blank_cor) ~
+                                                     0,
+                                                   TRUE ~ blank_cor))
+        message("Blank correction is set to true, but some blanks are NA.  Changing blanks to 0.")
+      }
       conc <- dplyr::mutate(conc, value_cor = value - blank_cor)
     } else {
       conc <- dplyr::mutate(conc, value_cor = value)
