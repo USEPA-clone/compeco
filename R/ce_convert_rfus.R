@@ -57,6 +57,9 @@ ce_convert_rfus <- function(rfus,
                             conversion_slope = NULL,
                             blank_correction = TRUE){
   
+  # Drop rows with NA in value - nothing to convert so dont need to keep
+  rfus <- filter(rfus, !is.na(value))
+  
   day_na <- any(is.na(rfus$day))
   month_na <- any(is.na(rfus$month))
   year_na <- any(is.na(rfus$year))
