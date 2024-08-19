@@ -58,7 +58,9 @@ ce_convert_rfus <- function(rfus,
                             blank_correction = TRUE){
   
   # Drop rows with NA in value - nothing to convert so dont need to keep
+  # Drop rows with no fluorometer listed - can't convert without that info.
   rfus <- filter(rfus, !is.na(value))
+  rfus <- filter(rfus, !is.na(fluorometer))
   
   day_na <- any(is.na(rfus$day))
   month_na <- any(is.na(rfus$month))
