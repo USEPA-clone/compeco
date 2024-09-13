@@ -1,10 +1,36 @@
 
 # compeco package
 
-# Exported functions in the `compeco` package as of 2021-11-16
+# Exported functions in the `compeco` package as of 2024-09-13
 
--   `ce_convert_rfus()`: Converts input RFUs to concentration
--   `ce_create_std_curve()`: Creates a standard curve from input
-    fluorometer and spectrophotometer files
--   `ce_prep_rfu_file()`: Prepares input files to get converted into
-    concentration. Might end up being an internal function
+- `ce_convert_rfus()`: Converts input RFUs to concentration
+- `ce_prep_rfu_file()`: Prepares input files to get converted into
+  concentration. Might end up being an internal function
+- `ce_process_buoy_data()`: Function to fetch buoy data from
+  newftp.epa.gov and merge into an rda
+- `ce_process_exo_data()`: Prepares and combines data files from
+  handheld YSI exo2
+- `ce_read_exo_data()`: Reads in an exo data file
+- `ce_get_nla_data()`: Function to download, clean, and merge NLA data.
+  This standardizes our approach, across projects, for getting this
+  data.
+
+## Code of Conduct
+
+Please note that the compeco project is released with a [Contributor
+Code of
+Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html).
+By contributing to this project, you agree to abide by its terms.
+
+## Disclaimer
+
+This United States Environmental Protection Agency (EPA) GitHub project
+code is provided on an “as is” basis and the user assumes responsibility
+for its use. EPA has relinquished control of the information and no
+longer has responsibility to protect the integrity, confidentiality, or
+availability of the information. Any reference to specific commercial
+products, processes, or services by service mark, trademark,
+manufacturer, or otherwise, does not constitute or imply their
+endorsement, recommendation or favoring by EPA. The EPA seal and logo
+shall not be used in any manner to imply endorsement of any commercial
+product or activity by EPA or the United States Government.
