@@ -59,8 +59,14 @@ ce_convert_rfus <- function(rfus,
   
   # Drop rows with NA in value - nothing to convert so dont need to keep
   # Drop rows with no fluorometer listed - can't convert without that info.
+  
   rfus <- filter(rfus, !is.na(value))
-  rfus <- filter(rfus, !is.na(fluorometer))
+  if("fluorometer" %in% names(rfus)){
+    rfus <- filter(rfus, !is.na(fluorometer))
+    fluorometer <- tolower(unique(rfus$fluorometer))  
+  } else {
+    fluorometer <- match.arg(fluorometer)
+  }
   
   day_na <- any(is.na(rfus$day))
   month_na <- any(is.na(rfus$month))
@@ -70,7 +76,7 @@ ce_convert_rfus <- function(rfus,
   }
   module <- match.arg(module)
   year <- match.arg(year)
-  fluorometer <- match.arg(fluorometer)
+  
   if(is.null(conversion_slope)){
     std_curve <- ce_create_std_curve(module, year, fluorometer)
   } else {
