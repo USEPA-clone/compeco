@@ -23,7 +23,7 @@
 #'             a year add "a", "b", ...  Acceptable values are:  "2021"
 #' @param output An optional output path and csv file name for converted values.
 #' @param std_check Logical to determine if a solid standard check should be 
-#'                  done.  Defualts to TRUE.
+#'                  done.  Defaults to TRUE.
 #' @param conversion_slope This argument is used to overide the standard curves 
 #'                         that are generated internally.  If you are using a 
 #'                         different fluorometer than specified above and 

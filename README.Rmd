@@ -13,9 +13,6 @@ output: github_document
 - `ce_read_exo_data()`: Reads in an exo data file
 - `ce_get_nla_data()`: Function to download, clean, and merge NLA data.  This standardizes our approach, across projects, for getting this data.
 
-## Code of Conduct
-
-Please note that the compeco project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/0/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
 
 ## Disclaimer
 
